@@ -55,8 +55,12 @@
                     <div class="row mb-3">
                         <div class="col-md-6">
                             <label asp-for="DataHora" class="form-label">Data e Hora da Reunião *</label>
-                            <input asp-for="DataHora" type="datetime-local" class="form-control" required />
+                            <input asp-for="DataHora" id="inputDataHora" type="datetime-local" class="form-control" required />
                             <span asp-validation-for="DataHora" class="text-danger small"></span>
+                            <div id="conflitoDiaAlerta" class="alert alert-warning mt-2 py-2 d-none shadow-sm small">
+                                <i class="bi bi-exclamation-triangle-fill text-warning me-1"></i>
+                                <span id="conflitoDiaTexto"></span>
+                            </div>
                         </div>
                     </div>
 
@@ -68,7 +72,7 @@
 
                     <div class="d-flex justify-content-between">
                         <a asp-action="Index" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> Voltar</a>
-                        <button type="submit" class="btn btn-primary"><i class="bi bi-check2-circle"></i> Confirmar Agendamento</button>
+                        <button type="submit" id="btnConfirmarAgendamento" class="btn btn-primary"><i class="bi bi-check2-circle"></i> Confirmar Agendamento</button>
                     </div>
                 </form>
             </div>
@@ -78,6 +82,42 @@
 
 @section Scripts {
     <script>
+        const selectCongregacao = document.querySelector('select[name="CongregacaoId"]');
+        const inputDataHora = document.getElementById('inputDataHora');
+        const alertaConflito = document.getElementById('conflitoDiaAlerta');
+        const textoConflito = document.getElementById('conflitoDiaTexto');
+        const btnSubmit = document.getElementById('btnConfirmarAgendamento');
+
+        async function checarDisponibilidadeDia() {
+            if (!selectCongregacao || !inputDataHora) return;
+            const congId = selectCongregacao.value;
+            const dataVal = inputDataHora.value;
+
+            if (!congId || !dataVal) {
+                alertaConflito.classList.add('d-none');
+                btnSubmit.disabled = false;
+                return;
+            }
+
+            try {
+                const res = await fetch(`/Agenda/VerificarDisponibilidade?congregacaoId=${congId}&data=${encodeURIComponent(dataVal)}`);
+                const info = await res.json();
+                if (!info.disponivel) {
+                    textoConflito.textContent = info.mensagem || "Esta congregação já possui um orador/discurso agendado para este dia! Não será permitido salvar.";
+                    alertaConflito.classList.remove('d-none');
+                    btnSubmit.disabled = true;
+                } else {
+                    alertaConflito.classList.add('d-none');
+                    btnSubmit.disabled = false;
+                }
+            } catch (e) {
+                console.error(e);
+            }
+        }
+
+        if (selectCongregacao) selectCongregacao.addEventListener('change', checarDisponibilidadeDia);
+        if (inputDataHora) inputDataHora.addEventListener('change', checarDisponibilidadeDia);
+
         document.getElementById('selectOrador').addEventListener('change', async function() {
             const oradorId = this.value;
             const selectDiscurso = document.getElementById('selectDiscurso');

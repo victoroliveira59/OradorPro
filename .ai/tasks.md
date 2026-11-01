@@ -204,3 +204,17 @@
 | **T10.04** | Criar WhatsAppController e View Razor com exibição de QR Code e status | Engenheiro | T10.03 | `DONE` |
 | **T10.05** | Integrar link no menu de navegação e testes automatizados da conexão | Tester / Revisor | T10.04 | `DONE` |
 
+---
+
+## Fase 11 — Calendário Mensal e Bloqueio Diário de Agendamento
+*Objetivo: Implementar visualização interativa em grade de calendário mensal com discursos completos, navegação entre meses e bloqueio estrito de múltiplos agendamentos no mesmo dia.*
+
+| ID | Título da Task | Responsável | Dependência | Status |
+| :--- | :--- | :--- | :--- | :--- |
+| **T11.01** | Registrar ADR-0010 e refinar requisitos do Calendário e Bloqueio Diário | Analista | Fase 10 | `DONE` |
+| **T11.02** | Implementar bloqueio diário de agendamento em AgendaRepository e AgendaService | Engenheiro | T11.01 | `DONE` |
+| **T11.03** | Implementar ViewModel e endpoints de Calendário Mensal em AgendaController | Engenheiro | T11.02 | `DONE` |
+| **T11.04** | Implementar interface do Calendário Mensal em Razor com discursos completos | Engenheiro | T11.03 | `DONE` |
+| **T11.05** | Executar testes automatizados, coletar evidências e relatório de conclusão | Tester / Revisor | T11.04 | `DONE` |
+
+
