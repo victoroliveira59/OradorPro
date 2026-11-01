@@ -1,0 +1,52 @@
+@model AgendaPalestras.Application.DTOs.LoginDto
+@{
+    ViewData["Title"] = "Entrar no Sistema";
+    Layout = "_Layout";
+}
+
+<div class="row justify-content-center mt-5">
+    <div class="col-md-5 col-lg-4">
+        <div class="card shadow border-0 rounded-3">
+            <div class="card-header bg-dark text-white text-center py-4">
+                <i class="bi bi-shield-lock fs-1 text-primary mb-2 d-block"></i>
+                <h4 class="mb-0 fw-bold">Agenda de Palestras</h4>
+                <p class="text-white-50 small mb-0">Área Administrativa</p>
+            </div>
+            <div class="card-body p-4">
+                <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
+
+                <form asp-action="Login" asp-route-returnUrl="@ViewBag.ReturnUrl" method="post">
+                    @Html.AntiForgeryToken()
+
+                    <div class="mb-3">
+                        <label asp-for="Email" class="form-label">Email</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="bi bi-envelope"></i></span>
+                            <input asp-for="Email" type="email" class="form-control" placeholder="admin@agendapalestras.local" required autofocus />
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="Senha" class="form-label">Senha</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="bi bi-key"></i></span>
+                            <input asp-for="Senha" type="password" class="form-control" placeholder="••••••••" required />
+                        </div>
+                    </div>
+
+                    <div class="mb-3 form-check">
+                        <input asp-for="LembrarMe" type="checkbox" class="form-check-input" />
+                        <label asp-for="LembrarMe" class="form-check-label">Lembrar-me neste dispositivo</label>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary w-100 py-2 fw-semibold">
+                        <i class="bi bi-box-arrow-in-right"></i> Entrar
+                    </button>
+                </form>
+            </div>
+            <div class="card-footer bg-light text-center py-3 text-muted small">
+                Acesso restrito ao coordenador e administradores autorizados.
+            </div>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,137 @@
+@model IEnumerable<AgendaPalestras.Application.DTOs.AgendaDto>
+@using AgendaPalestras.Domain.Enums
+@{
+    ViewData["Title"] = "Agenda de Palestras";
+    var congregacoes = ViewBag.Congregacoes as IEnumerable<AgendaPalestras.Application.DTOs.CongregacaoDto> ?? Enumerable.Empty<AgendaPalestras.Application.DTOs.CongregacaoDto>();
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="mb-1"><i class="bi bi-calendar3"></i> Agenda de Palestras</h2>
+        <p class="text-muted">Cronograma, convites e confirmação de discursos públicos.</p>
+    </div>
+    <div>
+        <a asp-action="Create" class="btn btn-primary"><i class="bi bi-calendar-plus"></i> Agendar Palestra</a>
+    </div>
+</div>
+
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        @TempData["Success"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        @TempData["Error"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+<div class="card shadow-sm mb-4">
+    <div class="card-body">
+        <form method="get" class="row g-3 align-items-end">
+            <div class="col-md-3">
+                <label class="form-label">Data Inicial</label>
+                <input type="date" name="inicio" class="form-control" value="@ViewBag.DataInicio" />
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Data Final</label>
+                <input type="date" name="fim" class="form-control" value="@ViewBag.DataFim" />
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">Filtrar por Congregação</label>
+                <select name="congregacaoId" class="form-select">
+                    <option value="">Todas as congregações</option>
+                    @foreach (var c in congregacoes)
+                    {
+                        var selected = (ViewBag.CongregacaoId != null && (Guid)ViewBag.CongregacaoId == c.Id);
+                        <option value="@c.Id" selected="@selected">@c.Nome (@c.Cidade / @c.Circuito)</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-outline-primary w-100"><i class="bi bi-funnel"></i> Filtrar</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card shadow-sm">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover table-striped mb-0">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Data e Horário</th>
+                        <th>Congregação</th>
+                        <th>Orador</th>
+                        <th>Tema do Discurso</th>
+                        <th>Status</th>
+                        <th class="text-end">Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (!Model.Any())
+                    {
+                        <tr>
+                            <td colspan="6" class="text-center py-4 text-muted">
+                                <i class="bi bi-calendar-x fs-2 d-block mb-2"></i>
+                                Nenhuma palestra encontrada no período selecionado.
+                            </td>
+                        </tr>
+                    }
+                    @foreach (var p in Model)
+                    {
+                        var badgeClass = p.Status switch
+                        {
+                            StatusPalestra.Confirmado => "bg-success",
+                            StatusPalestra.Pendente => "bg-warning text-dark",
+                            StatusPalestra.Recusado => "bg-danger",
+                            StatusPalestra.Cancelado => "bg-secondary",
+                            _ => "bg-light text-dark"
+                        };
+
+                        <tr>
+                            <td>
+                                <strong>@p.DataHora.ToString("dd/MM/yyyy")</strong>
+                                <span class="text-muted d-block small">@p.DataHora.ToString("HH:mm") (@p.DataHora.ToString("dddd"))</span>
+                            </td>
+                            <td>
+                                <strong>@p.CongregacaoNome</strong>
+                                <span class="text-muted d-block small">@p.CongregacaoCidade (@p.CongregacaoCircuito)</span>
+                            </td>
+                            <td>
+                                <strong>@p.OradorNome</strong>
+                                <span class="text-muted d-block small">Origem: @p.OradorCongregacaoOrigem</span>
+                            </td>
+                            <td>
+                                <strong>Nº @p.DiscursoNumero</strong> - @p.DiscursoTema
+                            </td>
+                            <td>
+                                <span class="badge @badgeClass">@p.StatusDescricao</span>
+                                @if (p.DataConviteEnviado.HasValue)
+                                {
+                                    <span class="d-block small text-muted" title="Convite WhatsApp enviado"><i class="bi bi-whatsapp text-success"></i> Enviado</span>
+                                }
+                            </td>
+                            <td class="text-end">
+                                <a asp-action="Details" asp-route-id="@p.Id" class="btn btn-sm btn-outline-info" title="Detalhes">
+                                    <i class="bi bi-eye"></i>
+                                </a>
+                                @if (p.Status != StatusPalestra.Cancelado)
+                                {
+                                    <a asp-action="Edit" asp-route-id="@p.Id" class="btn btn-sm btn-outline-secondary" title="Reagendar">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>

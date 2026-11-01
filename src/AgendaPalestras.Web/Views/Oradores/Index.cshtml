@@ -1,0 +1,126 @@
+@model IEnumerable<AgendaPalestras.Application.DTOs.OradorDto>
+@{
+    ViewData["Title"] = "Oradores";
+    var congregacoes = ViewBag.Congregacoes as IEnumerable<AgendaPalestras.Application.DTOs.CongregacaoDto> ?? Enumerable.Empty<AgendaPalestras.Application.DTOs.CongregacaoDto>();
+    Guid? filtroId = ViewBag.FiltroCongregacaoId as Guid?;
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="mb-1"><i class="bi bi-person-lines-fill"></i> Oradores Convidados</h2>
+        <p class="text-muted">Cadastro e repertório de oradores vinculados a congregações parceiras.</p>
+    </div>
+    <a asp-action="Create" class="btn btn-primary"><i class="bi bi-person-plus"></i> Novo Orador</a>
+</div>
+
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        @TempData["Success"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        @TempData["Error"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+<div class="card mb-4 shadow-sm">
+    <div class="card-body">
+        <form method="get" class="row g-3 align-items-center">
+            <div class="col-auto">
+                <label class="col-form-label fw-bold">Filtrar por Congregação:</label>
+            </div>
+            <div class="col-md-4">
+                <select name="congregacaoId" class="form-select" onchange="this.form.submit()">
+                    <option value="">Todas as congregações</option>
+                    @foreach (var c in congregacoes)
+                    {
+                        <option value="@c.Id" selected="@(c.Id == filtroId ? "selected" : null)">@c.Nome (@c.Cidade)</option>
+                    }
+                </select>
+            </div>
+            @if (filtroId.HasValue)
+            {
+                <div class="col-auto">
+                    <a asp-action="Index" class="btn btn-outline-secondary">Limpar Filtro</a>
+                </div>
+            }
+        </form>
+    </div>
+</div>
+
+<div class="card shadow-sm">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover table-striped mb-0">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Nome</th>
+                        <th>Congregação de Origem</th>
+                        <th>WhatsApp</th>
+                        <th>Discursos no Repertório</th>
+                        <th>Status</th>
+                        <th class="text-end">Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (!Model.Any())
+                    {
+                        <tr>
+                            <td colspan="6" class="text-center py-4 text-muted">Nenhum orador encontrado.</td>
+                        </tr>
+                    }
+                    @foreach (var o in Model)
+                    {
+                        <tr>
+                            <td class="fw-bold">@o.Nome</td>
+                            <td><span class="badge bg-light text-dark border">@o.CongregacaoNome</span></td>
+                            <td>
+                                <a href="https://wa.me/@o.TelefoneWhatsapp" target="_blank" class="text-decoration-none text-success">
+                                    <i class="bi bi-whatsapp"></i> @o.TelefoneWhatsapp
+                                </a>
+                            </td>
+                            <td>
+                                @if (o.Repertorio.Any())
+                                {
+                                    <span class="badge bg-info text-dark" title="@string.Join(", ", o.Repertorio.Select(r => $"Nº {r.Numero}"))">
+                                        @o.Repertorio.Count discurso(s)
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-warning text-dark">Sem discursos</span>
+                                }
+                            </td>
+                            <td>
+                                @if (o.Ativo)
+                                {
+                                    <span class="badge bg-success">Ativo</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-danger">Inativo</span>
+                                }
+                            </td>
+                            <td class="text-end">
+                                <a asp-action="Repertorio" asp-route-id="@o.Id" class="btn btn-sm btn-outline-info" title="Gerenciar Repertório de Discursos">
+                                    <i class="bi bi-journals"></i> Repertório
+                                </a>
+                                <a asp-action="Edit" asp-route-id="@o.Id" class="btn btn-sm btn-outline-secondary">Editar</a>
+                                <form asp-action="AlternarStatus" asp-route-id="@o.Id" method="post" class="d-inline">
+                                    <button type="submit" class="btn btn-sm @(o.Ativo ? "btn-outline-warning" : "btn-outline-success")">
+                                        @(o.Ativo ? "Desativar" : "Ativar")
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>

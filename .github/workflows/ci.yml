@@ -1,0 +1,38 @@
+name: CI — Agenda de Palestras
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Código
+      uses: actions/checkout@v4
+
+    - name: Setup .NET 8
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '8.0.x'
+
+    - name: Restaurar Dependências
+      run: dotnet restore AgendaPalestras.sln
+
+    - name: Compilar Solução (Release)
+      run: dotnet build AgendaPalestras.sln -c Release --no-restore
+
+    - name: Executar Testes Unitários
+      run: dotnet test tests/AgendaPalestras.UnitTests/AgendaPalestras.UnitTests.csproj -c Release --no-build --logger "console;verbosity=normal"
+
+    - name: Executar Testes de Arquitetura
+      run: dotnet test tests/AgendaPalestras.ArchitectureTests/AgendaPalestras.ArchitectureTests.csproj -c Release --no-build --logger "console;verbosity=normal"
+
+    - name: Executar Testes de Integração
+      run: dotnet test tests/AgendaPalestras.IntegrationTests/AgendaPalestras.IntegrationTests.csproj -c Release --no-build --logger "console;verbosity=normal"

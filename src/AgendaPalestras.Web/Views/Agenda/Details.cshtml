@@ -1,0 +1,169 @@
+@model AgendaPalestras.Application.DTOs.AgendaDto
+@using AgendaPalestras.Domain.Enums
+@{
+    ViewData["Title"] = "Detalhes da Palestra";
+    var badgeClass = Model.Status switch
+    {
+        StatusPalestra.Confirmado => "bg-success",
+        StatusPalestra.Pendente => "bg-warning text-dark",
+        StatusPalestra.Recusado => "bg-danger",
+        StatusPalestra.Cancelado => "bg-secondary",
+        _ => "bg-light text-dark"
+    };
+}
+
+<div class="row justify-content-center">
+    <div class="col-lg-9">
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+                <h4 class="mb-0"><i class="bi bi-info-circle"></i> Detalhes do Agendamento</h4>
+                <span class="badge @badgeClass fs-6">@Model.StatusDescricao</span>
+            </div>
+            <div class="card-body">
+                @if (TempData["Success"] != null)
+                {
+                    <div class="alert alert-success alert-dismissible fade show" role="alert">
+                        @TempData["Success"]
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                }
+                @if (TempData["Error"] != null)
+                {
+                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                        @TempData["Error"]
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                }
+
+                <div class="row mb-4">
+                    <div class="col-md-6 border-end">
+                        <h5 class="text-primary"><i class="bi bi-building"></i> Congregação Hospedeira</h5>
+                        <p class="mb-1"><strong>Nome:</strong> @Model.CongregacaoNome</p>
+                        <p class="mb-1"><strong>Localidade:</strong> @Model.CongregacaoCidade (@Model.CongregacaoCircuito)</p>
+                    </div>
+                    <div class="col-md-6 ps-md-4">
+                        <h5 class="text-primary"><i class="bi bi-person-badge"></i> Orador Convidado</h5>
+                        <p class="mb-1"><strong>Nome:</strong> @Model.OradorNome</p>
+                        <p class="mb-1"><strong>Congregação de Origem:</strong> @Model.OradorCongregacaoOrigem</p>
+                        <p class="mb-1"><strong>WhatsApp:</strong> <a href="https://wa.me/@Model.OradorTelefone" target="_blank" class="text-decoration-none"><i class="bi bi-whatsapp text-success"></i> @Model.OradorTelefone</a></p>
+                    </div>
+                </div>
+
+                <div class="card bg-light border-0 mb-4">
+                    <div class="card-body">
+                        <h5 class="card-title text-primary"><i class="bi bi-mic"></i> Discurso Público</h5>
+                        <h4 class="mb-1">Nº @Model.DiscursoNumero — @Model.DiscursoTema</h4>
+                        <p class="text-muted mb-0"><i class="bi bi-calendar-event"></i> <strong>Data e Hora:</strong> @Model.DataHora.ToString("dd/MM/yyyy 'às' HH:mm") (@Model.DataHora.ToString("dddd"))</p>
+                    </div>
+                </div>
+
+                <h5 class="text-primary mb-3"><i class="bi bi-clock-history"></i> Linha do Tempo e Automações WhatsApp</h5>
+                <ul class="list-group list-group-flush mb-4">
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <span><i class="bi bi-send text-primary"></i> Convite WhatsApp:</span>
+                        @if (Model.DataConviteEnviado.HasValue)
+                        {
+                            <span class="text-success"><i class="bi bi-check-circle-fill"></i> Enviado em @Model.DataConviteEnviado.Value.ToString("dd/MM/yyyy HH:mm")</span>
+                        }
+                        else
+                        {
+                            <span class="text-muted"><i class="bi bi-dash-circle"></i> Não enviado</span>
+                        }
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <span><i class="bi bi-chat-dots text-primary"></i> Resposta do Orador:</span>
+                        @if (Model.DataResposta.HasValue)
+                        {
+                            <span class="text-success"><i class="bi bi-check-circle-fill"></i> Recebida em @Model.DataResposta.Value.ToString("dd/MM/yyyy HH:mm")</span>
+                        }
+                        else
+                        {
+                            <span class="text-muted"><i class="bi bi-hourglass-split"></i> Aguardando resposta</span>
+                        }
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <span><i class="bi bi-bell text-primary"></i> Lembrete Preventivo (7 dias antes):</span>
+                        @if (Model.DataLembreteEnviado.HasValue)
+                        {
+                            <span class="text-success"><i class="bi bi-check-circle-fill"></i> Disparado em @Model.DataLembreteEnviado.Value.ToString("dd/MM/yyyy HH:mm")</span>
+                        }
+                        else
+                        {
+                            <span class="text-muted"><i class="bi bi-dash-circle"></i> Não disparado</span>
+                        }
+                    </li>
+                </ul>
+
+                @if (!string.IsNullOrWhiteSpace(Model.MotivoCancelamentoOuRecusa))
+                {
+                    <div class="alert alert-warning">
+                        <strong>Motivo de cancelamento ou recusa:</strong> @Model.MotivoCancelamentoOuRecusa
+                    </div>
+                }
+
+                @if (!string.IsNullOrWhiteSpace(Model.Observacoes))
+                {
+                    <div class="mb-4">
+                        <strong>Observações Internas:</strong>
+                        <p class="text-muted mb-0">@Model.Observacoes</p>
+                    </div>
+                }
+
+                <div class="d-flex justify-content-between align-items-center border-top pt-3">
+                    <a asp-action="Index" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> Voltar à Lista</a>
+
+                    <div>
+                        @if (Model.Status == StatusPalestra.Pendente)
+                        {
+                            <form asp-action="ReenviarConvite" asp-route-id="@Model.Id" method="post" class="d-inline">
+                                @Html.AntiForgeryToken()
+                                <button type="submit" class="btn btn-outline-success me-2"><i class="bi bi-whatsapp"></i> Reenviar Convite</button>
+                            </form>
+
+                            <form asp-action="Confirmar" asp-route-id="@Model.Id" method="post" class="d-inline">
+                                @Html.AntiForgeryToken()
+                                <button type="submit" class="btn btn-success me-2"><i class="bi bi-check-lg"></i> Confirmar Manualmente</button>
+                            </form>
+                        }
+
+                        @if (Model.Status != StatusPalestra.Cancelado)
+                        {
+                            <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-outline-secondary me-2"><i class="bi bi-pencil"></i> Reagendar</a>
+
+                            <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#modalCancelar">
+                                <i class="bi bi-x-circle"></i> Cancelar Agendamento
+                            </button>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Cancelar -->
+<div class="modal fade" id="modalCancelar" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form asp-action="Cancelar" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="id" value="@Model.Id" />
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title">Confirmar Cancelamento de Palestra</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Tem certeza que deseja cancelar esta palestra de <strong>@Model.OradorNome</strong> em <strong>@Model.DataHora.ToString("dd/MM/yyyy")</strong>?</p>
+                    <div class="mb-3">
+                        <label class="form-label">Motivo do cancelamento (opcional):</label>
+                        <input type="text" name="motivo" class="form-control" placeholder="Ex: Doença, imprevisto na congregação" />
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+                    <button type="submit" class="btn btn-danger">Confirmar Cancelamento</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

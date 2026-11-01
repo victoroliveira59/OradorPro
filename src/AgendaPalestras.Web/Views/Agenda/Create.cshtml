@@ -1,0 +1,115 @@
+@model AgendaPalestras.Application.DTOs.CriarAgendaDto
+@{
+    ViewData["Title"] = "Novo Agendamento de Palestra";
+    var congregacoes = ViewBag.Congregacoes as IEnumerable<AgendaPalestras.Application.DTOs.CongregacaoDto> ?? Enumerable.Empty<AgendaPalestras.Application.DTOs.CongregacaoDto>();
+    var oradores = ViewBag.Oradores as IEnumerable<AgendaPalestras.Application.DTOs.OradorDto> ?? Enumerable.Empty<AgendaPalestras.Application.DTOs.OradorDto>();
+}
+
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card shadow-sm">
+            <div class="card-header bg-primary text-white">
+                <h4 class="mb-0"><i class="bi bi-calendar-plus"></i> Agendar Nova Palestra</h4>
+            </div>
+            <div class="card-body">
+                <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
+
+                <form asp-action="Create" method="post">
+                    @Html.AntiForgeryToken()
+
+                    <div class="mb-3">
+                        <label asp-for="CongregacaoId" class="form-label">Congregação de Destino (Hospedeira) *</label>
+                        <select asp-for="CongregacaoId" class="form-select" required>
+                            <option value="">-- Selecione a Congregação --</option>
+                            @foreach (var c in congregacoes)
+                            {
+                                <option value="@c.Id">@c.Nome — @c.Cidade (@c.DiasReuniao às @c.HorarioReuniao)</option>
+                            }
+                        </select>
+                        <span asp-validation-for="CongregacaoId" class="text-danger small"></span>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="OradorId" class="form-label">Orador Convidado *</label>
+                        <select asp-for="OradorId" id="selectOrador" class="form-select" required>
+                            <option value="">-- Selecione o Orador --</option>
+                            @foreach (var o in oradores)
+                            {
+                                <option value="@o.Id">@o.Nome — Congregação @o.CongregacaoNome (@o.TelefoneWhatsapp)</option>
+                            }
+                        </select>
+                        <span asp-validation-for="OradorId" class="text-danger small"></span>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="DiscursoId" class="form-label">Tema do Discurso (Repertório do Orador) *</label>
+                        <select asp-for="DiscursoId" id="selectDiscurso" class="form-select" required disabled>
+                            <option value="">-- Primeiro selecione um orador para carregar seu repertório --</option>
+                        </select>
+                        <div id="repertorioHelp" class="form-text text-muted">
+                            Apenas os discursos cadastrados no repertório ativo deste orador serão listados.
+                        </div>
+                        <span asp-validation-for="DiscursoId" class="text-danger small"></span>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label asp-for="DataHora" class="form-label">Data e Hora da Reunião *</label>
+                            <input asp-for="DataHora" type="datetime-local" class="form-control" required />
+                            <span asp-validation-for="DataHora" class="text-danger small"></span>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="Observacoes" class="form-label">Observações Internas</label>
+                        <textarea asp-for="Observacoes" class="form-control" rows="3" placeholder="Informações adicionais, hospitalidade, transporte, etc."></textarea>
+                        <span asp-validation-for="Observacoes" class="text-danger small"></span>
+                    </div>
+
+                    <div class="d-flex justify-content-between">
+                        <a asp-action="Index" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> Voltar</a>
+                        <button type="submit" class="btn btn-primary"><i class="bi bi-check2-circle"></i> Confirmar Agendamento</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        document.getElementById('selectOrador').addEventListener('change', async function() {
+            const oradorId = this.value;
+            const selectDiscurso = document.getElementById('selectDiscurso');
+            
+            selectDiscurso.innerHTML = '<option value="">Carregando repertório...</option>';
+            selectDiscurso.disabled = true;
+
+            if (!oradorId) {
+                selectDiscurso.innerHTML = '<option value="">-- Primeiro selecione um orador --</option>';
+                return;
+            }
+
+            try {
+                const response = await fetch(`/Agenda/DiscursosDoOrador?oradorId=${oradorId}`);
+                const data = await response.json();
+
+                selectDiscurso.innerHTML = '';
+                if (data.length === 0) {
+                    selectDiscurso.innerHTML = '<option value="">Nenhum discurso no repertório deste orador!</option>';
+                } else {
+                    selectDiscurso.innerHTML = '<option value="">-- Selecione o Discurso do Repertório --</option>';
+                    data.forEach(item => {
+                        const opt = document.createElement('option');
+                        opt.value = item.id;
+                        opt.textContent = item.texto;
+                        selectDiscurso.appendChild(opt);
+                    });
+                    selectDiscurso.disabled = false;
+                }
+            } catch (err) {
+                selectDiscurso.innerHTML = '<option value="">Erro ao carregar repertório.</option>';
+            }
+        });
+    </script>
+}

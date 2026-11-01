@@ -1,0 +1,60 @@
+@model AgendaPalestras.Application.DTOs.AtualizarAgendaDto
+@{
+    ViewData["Title"] = "Reagendar Palestra";
+    var discursos = ViewBag.Discursos as IEnumerable<AgendaPalestras.Application.DTOs.DiscursoDto> ?? Enumerable.Empty<AgendaPalestras.Application.DTOs.DiscursoDto>();
+    var orador = ViewBag.Orador as AgendaPalestras.Application.DTOs.OradorDto;
+}
+
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card shadow-sm">
+            <div class="card-header bg-secondary text-white">
+                <h4 class="mb-0"><i class="bi bi-pencil"></i> Reagendar / Atualizar Palestra</h4>
+            </div>
+            <div class="card-body">
+                <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
+
+                <div class="alert alert-info">
+                    <strong>Orador:</strong> @(orador?.Nome ?? "Orador selecionado") <br/>
+                    <small class="text-muted">A alteração de data ou tema moverá o status para Pendente para novo alinhamento com o orador.</small>
+                </div>
+
+                <form asp-action="Edit" method="post">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" asp-for="Id" />
+
+                    <div class="mb-3">
+                        <label asp-for="DiscursoId" class="form-label">Tema do Discurso (Repertório do Orador) *</label>
+                        <select asp-for="DiscursoId" class="form-select" required>
+                            @foreach (var d in discursos)
+                            {
+                                var selected = (Model.DiscursoId == d.Id);
+                                <option value="@d.Id" selected="@selected">Nº @d.Numero - @d.Tema</option>
+                            }
+                        </select>
+                        <span asp-validation-for="DiscursoId" class="text-danger small"></span>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label asp-for="DataHora" class="form-label">Nova Data e Hora *</label>
+                            <input asp-for="DataHora" type="datetime-local" class="form-control" required />
+                            <span asp-validation-for="DataHora" class="text-danger small"></span>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="Observacoes" class="form-label">Observações</label>
+                        <textarea asp-for="Observacoes" class="form-control" rows="3"></textarea>
+                        <span asp-validation-for="Observacoes" class="text-danger small"></span>
+                    </div>
+
+                    <div class="d-flex justify-content-between">
+                        <a asp-action="Index" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> Voltar</a>
+                        <button type="submit" class="btn btn-primary"><i class="bi bi-check2"></i> Salvar Alterações</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>

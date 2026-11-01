@@ -1,0 +1,38 @@
+services:
+  # app:
+  #   build:
+  #     context: .
+  #     dockerfile: Dockerfile
+  #   container_name: agendapalestras-web
+  #   ports:
+  #     - "8080:8080"
+  #   environment:
+  #     - ASPNETCORE_ENVIRONMENT=Development
+  #     - ConnectionStrings__DefaultConnection=Host=db;Port=5432;Database=${POSTGRES_DB:-agendapalestras};Username=${POSTGRES_USER:-postgres};Password=${POSTGRES_PASSWORD:-postgres}
+  #     - WhatsApp__Provider=${WHATSAPP_PROVIDER:-Mock}
+  #     - WhatsApp__ApiKey=${WHATSAPP_API_KEY:-dev_key}
+  #     - WhatsApp__WebhookSecret=${WHATSAPP_WEBHOOK_SECRET:-dev_secret}
+  #   depends_on:
+  #     db:
+  #       condition: service_healthy
+
+  db:
+    image: postgres:16-alpine
+    container_name: agendapalestras-db
+    restart: always
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-agendapalestras}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+    ports:
+      - "${POSTGRES_PORT:-5433}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-agendapalestras}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  pgdata:

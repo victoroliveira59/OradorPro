@@ -1,0 +1,13 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/AgendaPalestras.Application/AgendaPalestras.Application.csproj" />
+    <Project Path="src/AgendaPalestras.Domain/AgendaPalestras.Domain.csproj" />
+    <Project Path="src/AgendaPalestras.Infrastructure/AgendaPalestras.Infrastructure.csproj" />
+    <Project Path="src/AgendaPalestras.Web/AgendaPalestras.Web.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/AgendaPalestras.ArchitectureTests/AgendaPalestras.ArchitectureTests.csproj" />
+    <Project Path="tests/AgendaPalestras.IntegrationTests/AgendaPalestras.IntegrationTests.csproj" />
+    <Project Path="tests/AgendaPalestras.UnitTests/AgendaPalestras.UnitTests.csproj" />
+  </Folder>
+</Solution>

@@ -1,0 +1,79 @@
+@model AgendaPalestras.Application.DTOs.CriarOradorDto
+@{
+    ViewData["Title"] = "Novo Orador";
+    var congregacoes = ViewBag.Congregacoes as IEnumerable<AgendaPalestras.Application.DTOs.CongregacaoDto> ?? Enumerable.Empty<AgendaPalestras.Application.DTOs.CongregacaoDto>();
+    var discursos = ViewBag.Discursos as IEnumerable<AgendaPalestras.Application.DTOs.DiscursoDto> ?? Enumerable.Empty<AgendaPalestras.Application.DTOs.DiscursoDto>();
+}
+
+<div class="row justify-content-center">
+    <div class="col-md-9">
+        <div class="card shadow-sm">
+            <div class="card-header bg-primary text-white">
+                <h4 class="mb-0">Cadastrar Novo Orador Convidado</h4>
+            </div>
+            <div class="card-body">
+                <form asp-action="Create" method="post">
+                    <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label asp-for="CongregacaoId" class="form-label">Congregação de Origem *</label>
+                            <select asp-for="CongregacaoId" class="form-select" required>
+                                <option value="">-- Selecione a Congregação --</option>
+                                @foreach (var c in congregacoes)
+                                {
+                                    <option value="@c.Id">@c.Nome (@c.Cidade)</option>
+                                }
+                            </select>
+                            <span asp-validation-for="CongregacaoId" class="text-danger"></span>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label asp-for="Nome" class="form-label">Nome Completo do Orador *</label>
+                            <input asp-for="Nome" class="form-control" placeholder="Ex: Irmão Silva" required />
+                            <span asp-validation-for="Nome" class="text-danger"></span>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label asp-for="TelefoneWhatsapp" class="form-label">Telefone WhatsApp (DDD + Número) *</label>
+                            <input asp-for="TelefoneWhatsapp" class="form-control" placeholder="Ex: 11988887777" required />
+                            <span asp-validation-for="TelefoneWhatsapp" class="text-danger"></span>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label asp-for="Email" class="form-label">E-mail (Opcional)</label>
+                            <input asp-for="Email" type="email" class="form-control" placeholder="exemplo@email.com" />
+                            <span asp-validation-for="Email" class="text-danger"></span>
+                        </div>
+                    </div>
+
+                    <hr class="my-4" />
+
+                    <h5 class="mb-3 text-secondary"><i class="bi bi-journal-check"></i> Repertório Inicial de Discursos (Opcional)</h5>
+                    <p class="text-muted small">Selecione os discursos que este orador está preparado para proferir. Você também pode ajustar a qualquer momento.</p>
+
+                    <div class="border rounded p-3 bg-light" style="max-height: 250px; overflow-y: auto;">
+                        @if (!discursos.Any())
+                        {
+                            <span class="text-muted">Nenhum discurso cadastrado no catálogo. Cadastre discursos primeiro se desejar vincular agora.</span>
+                        }
+                        @foreach (var d in discursos)
+                        {
+                            <div class="form-check mb-2">
+                                <input class="form-check-input" type="checkbox" name="discursosIniciaisIds" value="@d.Id" id="disc_@d.Id">
+                                <label class="form-check-label" for="disc_@d.Id">
+                                    <strong>Nº @d.Numero:</strong> @d.Tema
+                                </label>
+                            </div>
+                        }
+                    </div>
+
+                    <div class="d-flex justify-content-between mt-4">
+                        <a asp-action="Index" class="btn btn-outline-secondary">Cancelar</a>
+                        <button type="submit" class="btn btn-primary">Salvar Orador</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>

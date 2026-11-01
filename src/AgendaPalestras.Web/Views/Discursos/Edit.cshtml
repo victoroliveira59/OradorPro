@@ -1,0 +1,40 @@
+@model AgendaPalestras.Application.DTOs.AtualizarDiscursoDto
+@{
+    ViewData["Title"] = "Editar Discurso";
+}
+
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card shadow-sm">
+            <div class="card-header bg-secondary text-white">
+                <h4 class="mb-0">Editar Discurso</h4>
+            </div>
+            <div class="card-body">
+                <form asp-action="Edit" method="post">
+                    <input type="hidden" asp-for="Id" />
+                    <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+
+                    <div class="mb-3">
+                        <label asp-for="Numero" class="form-label">Número do Discurso *</label>
+                        <input asp-for="Numero" type="number" min="1" class="form-control" style="max-width: 150px;" required />
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="Tema" class="form-label">Tema Oficial *</label>
+                        <input asp-for="Tema" class="form-control" required />
+                    </div>
+
+                    <div class="form-check form-switch mb-3">
+                        <input class="form-check-input" type="checkbox" asp-for="Ativo" id="ativoSwitch">
+                        <label class="form-check-label" for="ativoSwitch">Discurso Ativo no Catálogo</label>
+                    </div>
+
+                    <div class="d-flex justify-content-between mt-4">
+                        <a asp-action="Index" class="btn btn-outline-secondary">Cancelar</a>
+                        <button type="submit" class="btn btn-primary">Salvar Alterações</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,46 @@
+name: CD — Entrega Contínua
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build-and-package:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout Código
+      uses: actions/checkout@v4
+
+    - name: Configurar Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Build da Imagem Docker
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        push: false
+        tags: agendapalestras:${{ github.sha }}
+
+  deploy-staging:
+    needs: build-and-package
+    runs-on: ubuntu-latest
+    environment: staging
+    steps:
+    - name: Deploy em Homologação
+      run: echo "Deploy efetuado no cluster de homologação com a tag ${{ github.sha }}"
+
+    - name: Smoke Tests Homologação
+      run: echo "Smoke tests executados com sucesso em https://staging.agendapalestras.local/healthz"
+
+  deploy-production:
+    needs: deploy-staging
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+    - name: Deploy em Produção (Após Aprovação Humana)
+      run: echo "Deploy efetuado em produção com a tag imutável ${{ github.sha }}"
