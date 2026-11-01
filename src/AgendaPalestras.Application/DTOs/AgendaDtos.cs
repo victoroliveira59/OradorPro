@@ -23,7 +23,10 @@ public record AgendaDto(
     string? MotivoCancelamentoOuRecusa,
     DateTime? DataConviteEnviado,
     DateTime? DataResposta,
-    DateTime? DataLembreteEnviado)
+    DateTime? DataLembreteEnviado,
+    string? PresidenteReuniao = null,
+    string? LeitorSentinela = null,
+    string? OracaoFinal = null)
 {
     public static AgendaDto FromDomain(Agenda a)
     {
@@ -54,10 +57,19 @@ public record AgendaDto(
             a.MotivoCancelamentoOuRecusa,
             a.DataConviteEnviado,
             a.DataResposta,
-            a.DataLembreteEnviado
+            a.DataLembreteEnviado,
+            a.PresidenteReuniao,
+            a.LeitorSentinela,
+            a.OracaoFinal
         );
     }
 }
+
+public record AtualizarDesignacoesReuniaoDto(
+    Guid AgendaId,
+    string? PresidenteReuniao,
+    string? LeitorSentinela,
+    string? OracaoFinal);
 
 public record CriarAgendaDto(
     Guid CongregacaoId,

@@ -163,4 +163,26 @@ public class AgendaService : IAgendaService
     {
         return await _agendaRepository.ExisteConflitoCongregacaoAsync(congregacaoId, dataHora, ignorarAgendaId, cancellationToken);
     }
+
+    public async Task AtualizarDesignacoesReuniaoAsync(AtualizarDesignacoesReuniaoDto dto, CancellationToken cancellationToken = default)
+    {
+        var agenda = await _agendaRepository.ObterPorIdAsync(dto.AgendaId, cancellationToken)
+            ?? throw new DomainException("Agendamento não encontrado.");
+
+        agenda.AtualizarDesignacoesReuniao(dto.PresidenteReuniao, dto.LeitorSentinela, dto.OracaoFinal);
+        await _agendaRepository.AtualizarAsync(agenda, cancellationToken);
+    }
+
+    public async Task SalvarDesignacoesEmLoteAsync(IEnumerable<AtualizarDesignacoesReuniaoDto> lista, CancellationToken cancellationToken = default)
+    {
+        foreach (var item in lista)
+        {
+            var agenda = await _agendaRepository.ObterPorIdAsync(item.AgendaId, cancellationToken);
+            if (agenda != null)
+            {
+                agenda.AtualizarDesignacoesReuniao(item.PresidenteReuniao, item.LeitorSentinela, item.OracaoFinal);
+                await _agendaRepository.AtualizarAsync(agenda, cancellationToken);
+            }
+        }
+    }
 }

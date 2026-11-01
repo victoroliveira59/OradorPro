@@ -1,24 +1,24 @@
 # Workflow State — Agenda de Palestras
 
 - **Project:** Agenda de Palestras
-- **Current Phase:** 11 - Calendário Mensal e Bloqueio Diário de Agendamento
-- **Current Task:** T11.05 - Executar testes automatizados, coletar evidências e relatório de conclusão
+- **Current Phase:** 12 - Programação de Fim de Semana e Exportação em PDF
+- **Current Task:** T12.05 - Integrar link no menu _Layout, testes automatizados e relatório de conclusão
 - **Workflow Status:** DONE
 - **Active Agent:** MAESTRO
 - **Correction Iteration:** 0/3
-- **Last Completed Task:** T11.05 - Calendário Mensal e Bloqueio Diário de Agendamento
+- **Last Completed Task:** T12.05 - Integrar link no menu _Layout, testes automatizados e relatório de conclusão
 - **Blockers:** none
-- **Last Updated:** 2026-11-01 15:01 BRT
+- **Last Updated:** 2026-11-01 16:36 BRT
 
 ---
 
 ## Current Objective
-Fase 11 (Calendário Mensal e Bloqueio Diário de Agendamento) concluída com sucesso: visualização em grade de calendário com discursos completos, navegação rápida por meses/anos, botão Hoje, alternância Calendário/Lista, atalho para dias vagos e bloqueio de múltiplos agendamentos no mesmo dia tanto na UI quanto no backend.
+Implementar tela de gestão da programação de reuniões de fim de semana com Tema, Orador (Nome e Congregação), Presidente, Leitor de A Sentinela e Oração Final por semana, e geração de arquivo PDF mensal formatado para impressão e distribuição.
 
 ---
 
 ## Next Action
-Apresentar a nova funcionalidade ao usuário e orientar sobre a navegação e regras de agendamento por dia.
+Registrar ADR-0011, atualizar entidade Agenda com os novos campos e gerar migration no EF Core.
 
 ---
 

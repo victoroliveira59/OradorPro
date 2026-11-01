@@ -55,6 +55,7 @@ public static class DependencyInjection
         services.AddScoped<IConfiguracaoSistemaRepository, ConfiguracaoSistemaRepository>();
 
         services.AddSingleton<IPasswordHasherService, Services.PasswordHasherService>();
+        services.AddSingleton<IProgramacaoPdfService, Services.ProgramacaoPdfService>();
         services.AddHttpClient<IEvolutionApiService, Services.EvolutionApiService>();
         services.AddScoped<IWhatsAppNotificationService, Services.WhatsAppNotificationService>();
         services.AddHostedService<BackgroundJobs.Lembrete7DiasBackgroundService>();

@@ -248,4 +248,62 @@ public class AgendaTests
         Assert.True(conflito);
         mockAgendaRepo.Verify(r => r.ExisteConflitoCongregacaoAsync(congId, data, null, It.IsAny<CancellationToken>()), Times.Once);
     }
+
+    [Fact]
+    public async Task AtualizarDesignacoesReuniaoAsync_DeveAtualizarERepassarParaRepositorio()
+    {
+        var mockAgendaRepo = new Mock<IAgendaRepository>();
+        var agenda = new Agenda(Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), DateTime.UtcNow.AddDays(7));
+
+        mockAgendaRepo.Setup(r => r.ObterPorIdAsync(agenda.Id, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(agenda);
+
+        var service = new AgendaService(
+            mockAgendaRepo.Object,
+            new Mock<ICongregacaoRepository>().Object,
+            new Mock<IOradorRepository>().Object,
+            new Mock<IDiscursoRepository>().Object,
+            new CriarAgendaValidator());
+
+        var dto = new AtualizarDesignacoesReuniaoDto(agenda.Id, "Irmão Presidente", "Irmão Leitor", "Irmão Oração");
+        await service.AtualizarDesignacoesReuniaoAsync(dto);
+
+        Assert.Equal("Irmão Presidente", agenda.PresidenteReuniao);
+        Assert.Equal("Irmão Leitor", agenda.LeitorSentinela);
+        Assert.Equal("Irmão Oração", agenda.OracaoFinal);
+        mockAgendaRepo.Verify(r => r.AtualizarAsync(agenda, It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task SalvarDesignacoesEmLoteAsync_DeveIterarEAtualizarCadaAgenda()
+    {
+        var mockAgendaRepo = new Mock<IAgendaRepository>();
+        var agenda1 = new Agenda(Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), DateTime.UtcNow.AddDays(7));
+        var agenda2 = new Agenda(Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), DateTime.UtcNow.AddDays(14));
+
+        mockAgendaRepo.Setup(r => r.ObterPorIdAsync(agenda1.Id, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(agenda1);
+        mockAgendaRepo.Setup(r => r.ObterPorIdAsync(agenda2.Id, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(agenda2);
+
+        var service = new AgendaService(
+            mockAgendaRepo.Object,
+            new Mock<ICongregacaoRepository>().Object,
+            new Mock<IOradorRepository>().Object,
+            new Mock<IDiscursoRepository>().Object,
+            new CriarAgendaValidator());
+
+        var lista = new List<AtualizarDesignacoesReuniaoDto>
+        {
+            new(agenda1.Id, "Pres 1", "Leitor 1", "Oracao 1"),
+            new(agenda2.Id, "Pres 2", "Leitor 2", "Oracao 2")
+        };
+
+        await service.SalvarDesignacoesEmLoteAsync(lista);
+
+        Assert.Equal("Pres 1", agenda1.PresidenteReuniao);
+        Assert.Equal("Pres 2", agenda2.PresidenteReuniao);
+        mockAgendaRepo.Verify(r => r.AtualizarAsync(agenda1, It.IsAny<CancellationToken>()), Times.Once);
+        mockAgendaRepo.Verify(r => r.AtualizarAsync(agenda2, It.IsAny<CancellationToken>()), Times.Once);
+    }
 }

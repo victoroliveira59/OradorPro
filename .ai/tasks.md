@@ -217,4 +217,18 @@
 | **T11.04** | Implementar interface do Calendário Mensal em Razor com discursos completos | Engenheiro | T11.03 | `DONE` |
 | **T11.05** | Executar testes automatizados, coletar evidências e relatório de conclusão | Tester / Revisor | T11.04 | `DONE` |
 
+---
+
+## Fase 12 — Programação de Fim de Semana e Exportação em PDF
+*Objetivo: Implementar menu de programação de reuniões de fim de semana, permitindo configurar Tema, Orador (Nome/Congregação), Presidente, Leitor de A Sentinela e Oração Final por semana, e gerar PDF mensal para impressão e distribuição.*
+
+| ID | Título da Task | Responsável | Dependência | Status |
+| :--- | :--- | :--- | :--- | :--- |
+| **T12.01** | Registrar ADR-0011 e modelar campos de reunião na entidade Agenda e Migration | Engenheiro | Fase 11 | `DONE` |
+| **T12.02** | Implementar DTOs e serviços de atualização das designações semanais | Engenheiro | T12.01 | `DONE` |
+| **T12.03** | Implementar IProgramacaoPdfService com QuestPDF para geração de PDF de alta fidelidade | Engenheiro | T12.02 | `DONE` |
+| **T12.04** | Criar ProgramacaoController e View Razor com formulário semanal e botão de PDF | Engenheiro | T12.03 | `DONE` |
+| **T12.05** | Integrar link no menu _Layout, testes automatizados e relatório de conclusão | Tester / Revisor | T12.04 | `DONE` |
+
+
 

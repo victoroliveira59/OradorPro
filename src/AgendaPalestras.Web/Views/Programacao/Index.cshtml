@@ -1,0 +1,223 @@
+@model AgendaPalestras.Web.Models.ProgramacaoFimDeSemanaViewModel
+@{
+    ViewData["Title"] = "Programação de Reunião de Fim de Semana";
+    var mesAnterior = new DateTime(Model.Ano, Model.Mes, 1).AddMonths(-1);
+    var mesProximo = new DateTime(Model.Ano, Model.Mes, 1).AddMonths(1);
+}
+
+<div class="container-fluid px-3">
+    <!-- Cabeçalho -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-2">
+        <div>
+            <h2 class="h3 fw-bold mb-1 text-primary">
+                <i class="bi bi-file-earmark-ruled"></i> Programação de Reunião de Fim de Semana
+            </h2>
+            <p class="text-muted mb-0">
+                Gerencie os detalhes da reunião semanal (Tema, Orador, Presidente, Leitor e Oração) e gere o PDF mensal.
+            </p>
+        </div>
+        <div class="d-flex gap-2">
+            <a asp-action="ExportarPdf" 
+               asp-route-ano="@Model.Ano" 
+               asp-route-mes="@Model.Mes" 
+               asp-route-congregacaoId="@Model.CongregacaoId" 
+               class="btn btn-danger shadow-sm"
+               target="_blank">
+                <i class="bi bi-file-earmark-pdf-fill me-1"></i> Exportar PDF Mensal
+            </a>
+            <a asp-controller="Agenda" asp-action="Index" class="btn btn-outline-secondary">
+                <i class="bi bi-calendar3 me-1"></i> Ver na Agenda
+            </a>
+        </div>
+    </div>
+
+    @if (TempData["MensagemSucesso"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="bi bi-check-circle-fill me-2"></i> @TempData["MensagemSucesso"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <!-- Barra de Filtros e Navegação Mensal -->
+    <div class="card shadow-sm mb-4 border-0">
+        <div class="card-body bg-light rounded">
+            <form method="get" asp-action="Index" class="row g-3 align-items-center">
+                <div class="col-md-5">
+                    <label class="form-label fw-bold small text-secondary">Congregação</label>
+                    <select name="congregacaoId" class="form-select" onchange="this.form.submit()">
+                        <option value="">-- Todas as Congregações --</option>
+                        @foreach (var c in Model.Congregacoes)
+                        {
+                            <option value="@c.Id" selected="@(Model.CongregacaoId == c.Id)">@c.Nome (@c.Cidade)</option>
+                        }
+                    </select>
+                </div>
+
+                <div class="col-md-7 d-flex justify-content-md-end align-items-end gap-2 pt-3 pt-md-0">
+                    <div class="btn-group shadow-sm" role="group">
+                        <a asp-action="Index" 
+                           asp-route-ano="@mesAnterior.Year" 
+                           asp-route-mes="@mesAnterior.Month" 
+                           asp-route-congregacaoId="@Model.CongregacaoId" 
+                           class="btn btn-outline-primary">
+                            <i class="bi bi-chevron-left"></i> Anterior
+                        </a>
+                        <span class="btn btn-primary fw-bold px-3">
+                            <i class="bi bi-calendar-month me-1"></i> @Model.NomeMesAno
+                        </span>
+                        <a asp-action="Index" 
+                           asp-route-ano="@mesProximo.Year" 
+                           asp-route-mes="@mesProximo.Month" 
+                           asp-route-congregacaoId="@Model.CongregacaoId" 
+                           class="btn btn-outline-primary">
+                            Próximo <i class="bi bi-chevron-right"></i>
+                        </a>
+                    </div>
+                </div>
+
+                <input type="hidden" name="ano" value="@Model.Ano" />
+                <input type="hidden" name="mes" value="@Model.Mes" />
+            </form>
+        </div>
+    </div>
+
+    <!-- Lista de Reuniões do Mês com Formulário de Edição em Lote -->
+    <form asp-action="Salvar" method="post">
+        @Html.AntiForgeryToken()
+        <input type="hidden" name="Ano" value="@Model.Ano" />
+        <input type="hidden" name="Mes" value="@Model.Mes" />
+        <input type="hidden" name="CongregacaoId" value="@Model.CongregacaoId" />
+
+        @if (Model.Reunioes == null || Model.Reunioes.Count == 0)
+        {
+            <div class="card shadow-sm border-0 text-center py-5">
+                <div class="card-body">
+                    <i class="bi bi-calendar-x text-muted" style="font-size: 3rem;"></i>
+                    <h5 class="fw-bold mt-3 text-secondary">Nenhuma reunião com orador agendada para @Model.NomeMesAno</h5>
+                    <p class="text-muted">
+                        Para preencher as designações da reunião de fim de semana, realize o agendamento de discursos na agenda.
+                    </p>
+                    <a asp-controller="Agenda" asp-action="Create" asp-route-congregacaoId="@Model.CongregacaoId" class="btn btn-primary mt-2">
+                        <i class="bi bi-plus-circle me-1"></i> Agendar Novo Discurso
+                    </a>
+                </div>
+            </div>
+        }
+        else
+        {
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <span class="badge bg-secondary fs-6 py-2 px-3">
+                    <i class="bi bi-list-check me-1"></i> @Model.Reunioes.Count @(Model.Reunioes.Count == 1 ? "reunião encontrada" : "reuniões encontradas")
+                </span>
+                <button type="submit" class="btn btn-success shadow-sm">
+                    <i class="bi bi-check-lg me-1"></i> Salvar Todas as Designações
+                </button>
+            </div>
+
+            <div class="row row-cols-1 g-3">
+                @for (int i = 0; i < Model.Reunioes.Count; i++)
+                {
+                    var item = Model.Reunioes[i];
+                    <input type="hidden" name="Designacoes[@i].AgendaId" value="@item.AgendaId" />
+
+                    <div class="col">
+                        <div class="card shadow-sm border-start border-4 border-primary">
+                            <div class="card-body">
+                                <div class="row g-3 align-items-center">
+                                    <!-- Coluna 1: Informações da Reunião e Orador -->
+                                    <div class="col-lg-5">
+                                        <div class="d-flex align-items-center gap-2 mb-2">
+                                            <span class="badge bg-primary fs-6">
+                                                <i class="bi bi-calendar-event me-1"></i> @item.DataHora.ToString("dd/MM/yyyy (dddd)")
+                                            </span>
+                                            <span class="badge bg-light text-dark border">
+                                                <i class="bi bi-clock me-1"></i> @item.DataHora.ToString("HH:mm")
+                                            </span>
+                                            <span class="badge @(item.StatusDescricao == "Confirmado" ? "bg-success" : "bg-warning text-dark")">
+                                                @item.StatusDescricao
+                                            </span>
+                                        </div>
+
+                                        <div class="p-2 rounded bg-light border">
+                                            <div class="fw-bold text-dark mb-1">
+                                                <i class="bi bi-journal-bookmark-fill text-primary me-1"></i> 
+                                                Discurso Nº @item.DiscursoNumero: @item.DiscursoTema
+                                            </div>
+                                            <div class="text-secondary small">
+                                                <i class="bi bi-person-fill me-1"></i> Orador: <strong>@item.OradorNome</strong>
+                                                @if (!string.IsNullOrWhiteSpace(item.OradorCongregacaoOrigem))
+                                                {
+                                                    <span>(@item.OradorCongregacaoOrigem)</span>
+                                                }
+                                                @if (!string.IsNullOrWhiteSpace(item.OradorTelefone))
+                                                {
+                                                    <span class="ms-1 text-muted">| @item.OradorTelefone</span>
+                                                }
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Coluna 2: Designações da Reunião -->
+                                    <div class="col-lg-7">
+                                        <div class="row g-2">
+                                            <div class="col-md-4">
+                                                <label class="form-label small fw-bold text-secondary mb-1">
+                                                    <i class="bi bi-person-workspace text-primary me-1"></i> Presidente da Reunião
+                                                </label>
+                                                <input type="text" 
+                                                       name="Designacoes[@i].PresidenteReuniao" 
+                                                       value="@item.PresidenteReuniao" 
+                                                       class="form-control form-control-sm" 
+                                                       placeholder="Nome do irmão" 
+                                                       maxlength="150" />
+                                            </div>
+
+                                            <div class="col-md-4">
+                                                <label class="form-label small fw-bold text-secondary mb-1">
+                                                    <i class="bi bi-book-half text-info me-1"></i> Leitor da Sentinela
+                                                </label>
+                                                <input type="text" 
+                                                       name="Designacoes[@i].LeitorSentinela" 
+                                                       value="@item.LeitorSentinela" 
+                                                       class="form-control form-control-sm" 
+                                                       placeholder="Nome do leitor" 
+                                                       maxlength="150" />
+                                            </div>
+
+                                            <div class="col-md-4">
+                                                <label class="form-label small fw-bold text-secondary mb-1">
+                                                    <i class="bi bi-chat-quote-fill text-secondary me-1"></i> Oração Final / Obs.
+                                                </label>
+                                                <input type="text" 
+                                                       name="Designacoes[@i].OracaoFinal" 
+                                                       value="@item.OracaoFinal" 
+                                                       class="form-control form-control-sm" 
+                                                       placeholder="Nome ou observação" 
+                                                       maxlength="250" />
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+
+            <div class="d-flex justify-content-end mt-4 mb-5 gap-2">
+                <a asp-action="ExportarPdf" 
+                   asp-route-ano="@Model.Ano" 
+                   asp-route-mes="@Model.Mes" 
+                   asp-route-congregacaoId="@Model.CongregacaoId" 
+                   class="btn btn-outline-danger"
+                   target="_blank">
+                    <i class="bi bi-file-earmark-pdf me-1"></i> Visualizar / Exportar PDF
+                </a>
+                <button type="submit" class="btn btn-success px-4 shadow-sm">
+                    <i class="bi bi-check-lg me-1"></i> Salvar Todas as Designações
+                </button>
+            </div>
+        }
+    </form>
+</div>

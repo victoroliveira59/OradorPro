@@ -29,28 +29,32 @@ namespace AgendaPalestras.Infrastructure.Migrations
                         .HasColumnType("uuid");
 
                     b.Property<DateTime?>("AtualizadoEm")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<Guid>("CongregacaoId")
                         .HasColumnType("uuid");
 
                     b.Property<DateTime>("CriadoEm")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<DateTime?>("DataConviteEnviado")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<DateTime>("DataHora")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<DateTime?>("DataLembreteEnviado")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<DateTime?>("DataResposta")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<Guid>("DiscursoId")
                         .HasColumnType("uuid");
+
+                    b.Property<string>("LeitorSentinela")
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)");
 
                     b.Property<string>("MotivoCancelamentoOuRecusa")
                         .HasMaxLength(500)
@@ -61,8 +65,16 @@ namespace AgendaPalestras.Infrastructure.Migrations
                         .HasMaxLength(1000)
                         .HasColumnType("character varying(1000)");
 
+                    b.Property<string>("OracaoFinal")
+                        .HasMaxLength(250)
+                        .HasColumnType("character varying(250)");
+
                     b.Property<Guid>("OradorId")
                         .HasColumnType("uuid");
+
+                    b.Property<string>("PresidenteReuniao")
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)");
 
                     b.Property<int>("Status")
                         .HasColumnType("integer");
@@ -87,7 +99,7 @@ namespace AgendaPalestras.Infrastructure.Migrations
                         .HasColumnType("character varying(100)");
 
                     b.Property<DateTime>("AtualizadoEm")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<string>("Valor")
                         .IsRequired()
@@ -108,7 +120,7 @@ namespace AgendaPalestras.Infrastructure.Migrations
                         .HasColumnType("boolean");
 
                     b.Property<DateTime?>("AtualizadoEm")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<string>("Cidade")
                         .IsRequired()
@@ -121,7 +133,7 @@ namespace AgendaPalestras.Infrastructure.Migrations
                         .HasColumnType("character varying(50)");
 
                     b.Property<DateTime>("CriadoEm")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<string>("DiasReuniao")
                         .IsRequired()
@@ -159,10 +171,10 @@ namespace AgendaPalestras.Infrastructure.Migrations
                         .HasColumnType("boolean");
 
                     b.Property<DateTime?>("AtualizadoEm")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<DateTime>("CriadoEm")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<int>("Numero")
                         .HasColumnType("integer");
@@ -190,7 +202,7 @@ namespace AgendaPalestras.Infrastructure.Migrations
                         .HasColumnType("uuid");
 
                     b.Property<DateTime?>("AtualizadoEm")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<string>("Conteudo")
                         .IsRequired()
@@ -198,10 +210,10 @@ namespace AgendaPalestras.Infrastructure.Migrations
                         .HasColumnType("character varying(2000)");
 
                     b.Property<DateTime>("CriadoEm")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<DateTime>("DataRegistro")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<int>("Direcao")
                         .HasColumnType("integer");
@@ -246,13 +258,13 @@ namespace AgendaPalestras.Infrastructure.Migrations
                         .HasColumnType("boolean");
 
                     b.Property<DateTime?>("AtualizadoEm")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<Guid>("CongregacaoId")
                         .HasColumnType("uuid");
 
                     b.Property<DateTime>("CriadoEm")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<string>("Email")
                         .IsRequired()
@@ -283,10 +295,10 @@ namespace AgendaPalestras.Infrastructure.Migrations
                         .HasColumnType("uuid");
 
                     b.Property<DateTime?>("AtualizadoEm")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<DateTime>("CriadoEm")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<Guid>("DiscursoId")
                         .HasColumnType("uuid");
@@ -314,10 +326,10 @@ namespace AgendaPalestras.Infrastructure.Migrations
                         .HasColumnType("boolean");
 
                     b.Property<DateTime?>("AtualizadoEm")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<DateTime>("CriadoEm")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<string>("Email")
                         .IsRequired()
