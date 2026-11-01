@@ -230,5 +230,19 @@
 | **T12.04** | Criar ProgramacaoController e View Razor com formulário semanal e botão de PDF | Engenheiro | T12.03 | `DONE` |
 | **T12.05** | Integrar link no menu _Layout, testes automatizados e relatório de conclusão | Tester / Revisor | T12.04 | `DONE` |
 
+---
+
+## Fase 13 — Layout e Responsividade Mobile
+*Objetivo: Modernizar o layout da aplicação com foco em dispositivos móveis (smartphones e tablets), adaptando menu, calendários, tabelas, cards e formulários para experiência touch e telas compactas.*
+
+| ID | Título da Task | Responsável | Dependência | Status |
+| :--- | :--- | :--- | :--- | :--- |
+| **T13.01** | Especificar requisitos de layout mobile, navegação responsiva e critérios de aceite | Analista | Fase 12 | `DONE` |
+| **T13.02** | Implementar layout base responsivo (_Layout, site.css, navbar mobile e touch targets) | Engenheiro | T13.01 | `DONE` |
+| **T13.03** | Implementar responsividade mobile da Agenda (calendário adaptativo e modo lista mobile) | Engenheiro | T13.02 | `DONE` |
+| **T13.04** | Implementar responsividade de Programação, Cadastros (Oradores, Congregações, Discursos) e Convites | Engenheiro | T13.03 | `DONE` |
+| **T13.05** | Executar testes de responsividade, suite de regressão e relatório de conclusão | Tester / Revisor | T13.04 | `DONE` |
+
+
 
 

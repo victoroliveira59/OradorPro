@@ -1,69 +1,70 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="pt-br">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>@ViewData["Title"] - AgendaPalestras.Web</title>
+    <title>@ViewData["Title"] - Agenda de Palestras</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/AgendaPalestras.Web.styles.css" asp-append-version="true" />
 </head>
-<body>
-    <header>
-        <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-dark bg-dark border-bottom box-shadow mb-3">
-            <div class="container">
-                <a class="navbar-brand fw-bold" asp-area="" asp-controller="Home" asp-action="Index">
-                    <i class="bi bi-calendar-event"></i> Agenda de Palestras
+<body class="d-flex flex-column min-vh-100">
+    <header class="sticky-top">
+        <nav class="navbar navbar-expand-lg navbar-dark bg-dark border-bottom shadow-sm">
+            <div class="container-xl px-3 px-sm-4">
+                <a class="navbar-brand fw-bold d-flex align-items-center" asp-area="" asp-controller="Home" asp-action="Index">
+                    <i class="bi bi-calendar-event text-primary fs-4 me-2"></i> 
+                    <span>Agenda de Palestras</span>
                 </a>
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent"
-                        aria-expanded="false" aria-label="Toggle navigation">
+                <button class="navbar-toggler border-0 p-2" type="button" data-bs-toggle="collapse" data-bs-target="#navbarContent" aria-controls="navbarContent"
+                        aria-expanded="false" aria-label="Alternar navegação">
                     <span class="navbar-toggler-icon"></span>
                 </button>
-                <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
-                    <ul class="navbar-nav flex-grow-1">
+                <div class="collapse navbar-collapse" id="navbarContent">
+                    <ul class="navbar-nav me-auto mb-2 mb-lg-0 py-2 py-lg-0">
                         <li class="nav-item">
-                            <a class="nav-link" asp-area="" asp-controller="Agenda" asp-action="Index"><i class="bi bi-calendar3"></i> Agenda</a>
+                            <a class="nav-link px-2 py-2" asp-area="" asp-controller="Agenda" asp-action="Index"><i class="bi bi-calendar3 me-1 text-info"></i> Agenda</a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" asp-area="" asp-controller="Programacao" asp-action="Index"><i class="bi bi-file-earmark-ruled"></i> Programação</a>
+                            <a class="nav-link px-2 py-2" asp-area="" asp-controller="Programacao" asp-action="Index"><i class="bi bi-file-earmark-ruled me-1 text-warning"></i> Programação</a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" asp-area="" asp-controller="Congregacoes" asp-action="Index"><i class="bi bi-building"></i> Congregações</a>
+                            <a class="nav-link px-2 py-2" asp-area="" asp-controller="Congregacoes" asp-action="Index"><i class="bi bi-building me-1 text-primary"></i> Congregações</a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" asp-area="" asp-controller="Oradores" asp-action="Index"><i class="bi bi-person-lines-fill"></i> Oradores</a>
+                            <a class="nav-link px-2 py-2" asp-area="" asp-controller="Oradores" asp-action="Index"><i class="bi bi-person-lines-fill me-1 text-success"></i> Oradores</a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" asp-area="" asp-controller="Discursos" asp-action="Index"><i class="bi bi-journal-text"></i> Discursos</a>
+                            <a class="nav-link px-2 py-2" asp-area="" asp-controller="Discursos" asp-action="Index"><i class="bi bi-journal-text me-1 text-secondary"></i> Discursos</a>
                         </li>
                         @if (User.IsInRole("Admin") || User.IsInRole("SuperAdmin"))
                         {
                             <li class="nav-item">
-                                <a class="nav-link" asp-area="" asp-controller="WhatsApp" asp-action="Index"><i class="bi bi-whatsapp text-success"></i> WhatsApp</a>
+                                <a class="nav-link px-2 py-2" asp-area="" asp-controller="WhatsApp" asp-action="Index"><i class="bi bi-whatsapp text-success me-1"></i> WhatsApp</a>
                             </li>
                         }
                         @if (User.IsInRole("SuperAdmin"))
                         {
                             <li class="nav-item">
-                                <a class="nav-link" asp-area="" asp-controller="Convites" asp-action="Index"><i class="bi bi-link-45deg text-warning"></i> Convites de Cadastro</a>
+                                <a class="nav-link px-2 py-2" asp-area="" asp-controller="Convites" asp-action="Index"><i class="bi bi-link-45deg text-warning me-1"></i> Convites</a>
                             </li>
                         }
                     </ul>
-                    <ul class="navbar-nav">
+                    <ul class="navbar-nav mb-2 mb-lg-0 border-top border-secondary border-opacity-25 pt-2 pt-lg-0 border-lg-0">
                         @if (User.Identity?.IsAuthenticated == true)
                         {
                             <li class="nav-item dropdown">
-                                <a class="nav-link dropdown-toggle text-light" href="#" role="button" data-bs-toggle="dropdown">
-                                    <i class="bi bi-person-circle"></i> @User.Identity.Name
+                                <a class="nav-link dropdown-toggle text-light px-2 py-2" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                    <i class="bi bi-person-circle me-1"></i> @User.Identity.Name
                                 </a>
-                                <ul class="dropdown-menu dropdown-menu-end shadow">
-                                    <li><span class="dropdown-item-text text-muted small"><i class="bi bi-shield-check"></i> Perfil: @(User.IsInRole("SuperAdmin") ? "Super Admin" : (User.IsInRole("Admin") ? "Admin" : "Usuário"))</span></li>
+                                <ul class="dropdown-menu dropdown-menu-end shadow border-0 mt-2">
+                                    <li><span class="dropdown-item-text text-muted small"><i class="bi bi-shield-check me-1"></i> Perfil: <strong>@(User.IsInRole("SuperAdmin") ? "Super Admin" : (User.IsInRole("Admin") ? "Admin" : "Usuário"))</strong></span></li>
                                     <li><hr class="dropdown-divider"></li>
                                     <li>
                                         <form asp-controller="Auth" asp-action="Logout" method="post" class="d-inline">
                                             @Html.AntiForgeryToken()
-                                            <button type="submit" class="dropdown-item text-danger"><i class="bi bi-box-arrow-right"></i> Sair</button>
+                                            <button type="submit" class="dropdown-item text-danger py-2"><i class="bi bi-box-arrow-right me-1"></i> Sair</button>
                                         </form>
                                     </li>
                                 </ul>
@@ -72,8 +73,8 @@
                         else
                         {
                             <li class="nav-item">
-                                <a class="nav-link btn btn-outline-light btn-sm text-white px-3" asp-controller="Auth" asp-action="Login">
-                                    <i class="bi bi-box-arrow-in-right"></i> Entrar
+                                <a class="nav-link btn btn-outline-light btn-sm text-white px-3 my-1" asp-controller="Auth" asp-action="Login">
+                                    <i class="bi bi-box-arrow-in-right me-1"></i> Entrar
                                 </a>
                             </li>
                         }
@@ -82,15 +83,16 @@
             </div>
         </nav>
     </header>
-    <div class="container">
-        <main role="main" class="pb-3">
+    <div class="container-xl px-3 px-sm-4 flex-grow-1">
+        <main role="main" class="py-3">
             @RenderBody()
         </main>
     </div>
 
-    <footer class="border-top footer text-muted">
-        <div class="container">
-            &copy; 2026 - AgendaPalestras.Web - <a asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
+    <footer class="border-top footer text-muted mt-auto py-2 bg-light">
+        <div class="container-xl px-3 px-sm-4 text-center text-sm-start d-flex flex-column flex-sm-row justify-content-between align-items-center small">
+            <span>&copy; 2026 - Agenda de Palestras</span>
+            <span>Sistema para Gestão e Automação de Reuniões</span>
         </div>
     </footer>
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
