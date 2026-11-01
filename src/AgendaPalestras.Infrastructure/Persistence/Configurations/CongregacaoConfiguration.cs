@@ -31,6 +31,12 @@ public class CongregacaoConfiguration : IEntityTypeConfiguration<Congregacao>
         builder.Property(c => c.HorarioReuniao)
             .HasMaxLength(50);
 
+        builder.Property(c => c.Endereco)
+            .HasMaxLength(250);
+
+        builder.Property(c => c.LinkGoogleMaps)
+            .HasMaxLength(500);
+
         builder.Property(c => c.Ativo)
             .IsRequired();
 

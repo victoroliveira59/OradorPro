@@ -94,7 +94,7 @@
                     </li>
                 </ul>
 
-                @if (!string.IsNullOrWhiteSpace(Model.MotivoCancelamentoOuRecusa))
+                @if (!string.IsNullOrWhiteSpace(Model.MotivoCancelamentoOuRecusa) && (Model.Status == StatusPalestra.Cancelado || Model.Status == StatusPalestra.Recusado))
                 {
                     <div class="alert alert-warning">
                         <strong>Motivo de cancelamento ou recusa:</strong> @Model.MotivoCancelamentoOuRecusa
@@ -113,7 +113,7 @@
                     <a asp-action="Index" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> Voltar à Lista</a>
 
                     <div>
-                        @if (Model.Status == StatusPalestra.Pendente)
+                        @if (Model.Status == StatusPalestra.Pendente || Model.Status == StatusPalestra.Recusado)
                         {
                             <form asp-action="ReenviarConvite" asp-route-id="@Model.Id" method="post" class="d-inline">
                                 @Html.AntiForgeryToken()

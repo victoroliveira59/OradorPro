@@ -15,13 +15,17 @@ public class UsuarioRepository : IUsuarioRepository
 
     public async Task<Usuario?> ObterPorIdAsync(Guid id, CancellationToken cancellationToken = default)
     {
-        return await _context.Usuarios.FirstOrDefaultAsync(u => u.Id == id, cancellationToken);
+        return await _context.Usuarios
+            .Include(u => u.Congregacao)
+            .FirstOrDefaultAsync(u => u.Id == id, cancellationToken);
     }
 
     public async Task<Usuario?> ObterPorEmailAsync(string email, CancellationToken cancellationToken = default)
     {
         var emailLower = email.Trim().ToLowerInvariant();
-        return await _context.Usuarios.FirstOrDefaultAsync(u => u.Email == emailLower, cancellationToken);
+        return await _context.Usuarios
+            .Include(u => u.Congregacao)
+            .FirstOrDefaultAsync(u => u.Email == emailLower, cancellationToken);
     }
 
     public async Task<bool> ExisteAdminAsync(CancellationToken cancellationToken = default)

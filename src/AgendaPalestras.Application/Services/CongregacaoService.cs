@@ -48,7 +48,7 @@ public class CongregacaoService : ICongregacaoService
         if (await _repository.ExisteComNomeAsync(dto.Nome, cancellationToken: cancellationToken))
             throw new DomainException($"Já existe uma congregação com o nome '{dto.Nome}'.");
 
-        var entity = new Congregacao(dto.Nome, dto.Cidade, dto.Circuito, dto.DiasReuniao, dto.HorarioReuniao, usuarioCriadorId);
+        var entity = new Congregacao(dto.Nome, dto.Cidade, dto.Circuito, dto.DiasReuniao, dto.HorarioReuniao, usuarioCriadorId, dto.Endereco, dto.LinkGoogleMaps);
         await _repository.AdicionarAsync(entity, cancellationToken);
         return MapToDto(entity);
     }
@@ -61,7 +61,7 @@ public class CongregacaoService : ICongregacaoService
         if (await _repository.ExisteComNomeAsync(dto.Nome, dto.Id, cancellationToken))
             throw new DomainException($"Já existe outra congregação cadastrada com o nome '{dto.Nome}'.");
 
-        entity.Atualizar(dto.Nome, dto.Cidade, dto.Circuito, dto.DiasReuniao, dto.HorarioReuniao);
+        entity.Atualizar(dto.Nome, dto.Cidade, dto.Circuito, dto.DiasReuniao, dto.HorarioReuniao, dto.Endereco, dto.LinkGoogleMaps);
         if (dto.Ativo) entity.Ativar(); else entity.Desativar();
 
         await _repository.AtualizarAsync(entity, cancellationToken);
@@ -82,5 +82,5 @@ public class CongregacaoService : ICongregacaoService
     }
 
     private static CongregacaoDto MapToDto(Congregacao c) =>
-        new(c.Id, c.Nome, c.Cidade, c.Circuito, c.DiasReuniao, c.HorarioReuniao, c.Ativo, c.Oradores.Count);
+        new(c.Id, c.Nome, c.Cidade, c.Circuito, c.DiasReuniao, c.HorarioReuniao, c.Ativo, c.Oradores.Count, c.Endereco, c.LinkGoogleMaps);
 }

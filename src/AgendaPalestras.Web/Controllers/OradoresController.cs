@@ -24,17 +24,44 @@ public class OradoresController : Controller
         _discursoService = discursoService;
     }
 
+    private Guid? ObterCongregacaoIdUsuarioLogado()
+    {
+        var claim = User.FindFirst("CongregacaoId")?.Value;
+        if (Guid.TryParse(claim, out var id)) return id;
+        return null;
+    }
+
     public async Task<IActionResult> Index(Guid? congregacaoId = null)
     {
-        ViewBag.Congregacoes = await _congregacaoService.ListarTodasAsync(apenasAtivas: true);
-        ViewBag.FiltroCongregacaoId = congregacaoId;
+        var userCongId = ObterCongregacaoIdUsuarioLogado();
+        var filtro = userCongId ?? congregacaoId;
 
-        var oradores = await _oradorService.ListarTodosAsync(congregacaoId);
+        if (userCongId.HasValue)
+        {
+            var minhaCong = await _congregacaoService.ObterPorIdAsync(userCongId.Value);
+            ViewBag.Congregacoes = minhaCong != null ? new List<CongregacaoDto> { minhaCong } : new List<CongregacaoDto>();
+        }
+        else
+        {
+            ViewBag.Congregacoes = await _congregacaoService.ListarTodasAsync(apenasAtivas: true);
+        }
+
+        ViewBag.FiltroCongregacaoId = filtro;
+        var oradores = await _oradorService.ListarTodosAsync(filtro);
         return View(oradores);
     }
 
     public async Task<IActionResult> Create()
     {
+        var userCongId = ObterCongregacaoIdUsuarioLogado();
+        if (userCongId.HasValue)
+        {
+            var minhaCong = await _congregacaoService.ObterPorIdAsync(userCongId.Value);
+            ViewBag.Congregacoes = minhaCong != null ? new List<CongregacaoDto> { minhaCong } : new List<CongregacaoDto>();
+            ViewBag.Discursos = await _discursoService.ListarTodosAsync(apenasAtivos: true);
+            return View(new CriarOradorDto(userCongId.Value, "", "", ""));
+        }
+
         ViewBag.Congregacoes = await _congregacaoService.ListarTodasAsync(apenasAtivas: true);
         ViewBag.Discursos = await _discursoService.ListarTodosAsync(apenasAtivos: true);
         return View(new CriarOradorDto(Guid.Empty, "", "", ""));
@@ -44,6 +71,12 @@ public class OradoresController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Create(CriarOradorDto dto, List<Guid>? discursosIniciaisIds)
     {
+        var userCongId = ObterCongregacaoIdUsuarioLogado();
+        if (userCongId.HasValue)
+        {
+            dto = dto with { CongregacaoId = userCongId.Value };
+        }
+
         try
         {
             var dtoCompleto = dto with { DiscursosIniciaisIds = discursosIniciaisIds };
@@ -61,7 +94,15 @@ public class OradoresController : Controller
             ModelState.AddModelError(string.Empty, ex.Message);
         }
 
-        ViewBag.Congregacoes = await _congregacaoService.ListarTodasAsync(apenasAtivas: true);
+        if (userCongId.HasValue)
+        {
+            var minhaCong = await _congregacaoService.ObterPorIdAsync(userCongId.Value);
+            ViewBag.Congregacoes = minhaCong != null ? new List<CongregacaoDto> { minhaCong } : new List<CongregacaoDto>();
+        }
+        else
+        {
+            ViewBag.Congregacoes = await _congregacaoService.ListarTodasAsync(apenasAtivas: true);
+        }
         ViewBag.Discursos = await _discursoService.ListarTodosAsync(apenasAtivos: true);
         return View(dto);
     }

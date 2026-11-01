@@ -37,10 +37,17 @@ public class WhatsAppNotificationService : IWhatsAppNotificationService
         if (agenda == null)
             return new ResultadoEnvioMensagem(false, null, "Agendamento não encontrado.");
 
+        var enderecoInfo = !string.IsNullOrWhiteSpace(agenda.Congregacao?.Endereco)
+            ? $"\n📍 *Endereço:* {agenda.Congregacao.Endereco}"
+            : "";
+        var mapsInfo = !string.IsNullOrWhiteSpace(agenda.Congregacao?.LinkGoogleMaps)
+            ? $"\n🗺 *Google Maps:* {agenda.Congregacao.LinkGoogleMaps}"
+            : "";
+
         var texto = $"Olá, irmão {agenda.Orador.Nome}!\n\n" +
                     $"Você foi convidado para proferir o discurso público na *Congregação {agenda.Congregacao.Nome}*.\n\n" +
                     $"📅 *Data:* {agenda.DataHora:dd/MM/yyyy (dddd)}\n" +
-                    $"⏰ *Horário:* {agenda.DataHora:HH:mm}\n" +
+                    $"⏰ *Horário:* {agenda.DataHora:HH:mm}{enderecoInfo}{mapsInfo}\n" +
                     $"📖 *Tema:* Nº {agenda.Discurso.Numero} — {agenda.Discurso.Tema}\n\n" +
                     $"Por favor, responda:\n" +
                     $"*1* para CONFIRMAR\n" +
@@ -80,11 +87,18 @@ public class WhatsAppNotificationService : IWhatsAppNotificationService
             return new ResultadoEnvioMensagem(true, "JA_ENVIADO");
         }
 
+        var enderecoLembrete = !string.IsNullOrWhiteSpace(agenda.Congregacao?.Endereco)
+            ? $"\n📍 *Endereço:* {agenda.Congregacao.Endereco}"
+            : "";
+        var mapsLembrete = !string.IsNullOrWhiteSpace(agenda.Congregacao?.LinkGoogleMaps)
+            ? $"\n🗺 *Google Maps:* {agenda.Congregacao.LinkGoogleMaps}"
+            : "";
+
         var texto = $"Olá, irmão {agenda.Orador.Nome}!\n\n" +
                     $"Passando para lembrar do seu discurso confirmado daqui a 7 dias:\n\n" +
                     $"🏛 *Congregação:* {agenda.Congregacao.Nome}\n" +
                     $"📅 *Data:* {agenda.DataHora:dd/MM/yyyy (dddd)}\n" +
-                    $"⏰ *Horário:* {agenda.DataHora:HH:mm}\n" +
+                    $"⏰ *Horário:* {agenda.DataHora:HH:mm}{enderecoLembrete}{mapsLembrete}\n" +
                     $"📖 *Tema:* Nº {agenda.Discurso.Numero} — {agenda.Discurso.Tema}\n\n" +
                     $"Que tenha uma excelente reunião!";
 
@@ -154,7 +168,18 @@ public class WhatsAppNotificationService : IWhatsAppNotificationService
             return false;
         }
 
-        // 3. Localizar palestras pendentes que possuam convite enviado aguardando resposta
+        // 3. Analisar intenção estrita (somente respostas em específico para confirmação ou recusa)
+        bool isConfirmacao = IsRespostaConfirmacao(textoLimpo);
+        bool isRecusa = IsRespostaRecusa(textoLimpo);
+
+        // Se não for uma resposta em específico (ex: "bom dia", conversas comuns, outras dúvidas), desconsiderar silenciosamente!
+        if (!isConfirmacao && !isRecusa)
+        {
+            _logger.LogInformation("Mensagem '{Texto}' de {Telefone} ({Orador}) desconsiderada: não corresponde a resposta de convite.", textoMensagem, telefone, orador.Nome);
+            return false;
+        }
+
+        // 4. Localizar palestras que possuam convite enviado aguardando resposta
         var hoje = DateTime.Today;
         var futuras = await _agendaRepository.ObterPorPeriodoAsync(hoje, hoje.AddMonths(6), null, cancellationToken);
         var agendasPendentes = futuras
@@ -162,9 +187,18 @@ public class WhatsAppNotificationService : IWhatsAppNotificationService
             .OrderBy(a => a.DataHora)
             .ToList();
 
+        // Se o orador confirmou mas não há palestra pendente, verificar se estava como Recusada para reverter e confirmar
+        if (agendasPendentes.Count == 0 && isConfirmacao)
+        {
+            agendasPendentes = futuras
+                .Where(a => a.OradorId == orador.Id && a.Status == StatusPalestra.Recusado && a.DataConviteEnviado.HasValue)
+                .OrderBy(a => a.DataHora)
+                .ToList();
+        }
+
         if (agendasPendentes.Count == 0)
         {
-            // Orador não possui nenhum convite pendente aguardando resposta: desconsiderar silenciosamente
+            // Orador não possui nenhum convite elegível aguardando resposta: desconsiderar silenciosamente
             _logger.LogInformation("Mensagem de {Telefone} ({Orador}) desconsiderada: nenhum convite pendente aguardando resposta.", telefone, orador.Nome);
             return false;
         }
@@ -181,17 +215,6 @@ public class WhatsAppNotificationService : IWhatsAppNotificationService
         }
 
         agendaAlvo ??= agendasPendentes.First();
-
-        // 4. Analisar intenção estrita (somente respostas em específico para confirmação ou recusa)
-        bool isConfirmacao = IsRespostaConfirmacao(textoLimpo);
-        bool isRecusa = IsRespostaRecusa(textoLimpo);
-
-        // Se não for uma resposta em específico (ex: "bom dia", conversas comuns, outras dúvidas), desconsiderar silenciosamente!
-        if (!isConfirmacao && !isRecusa)
-        {
-            _logger.LogInformation("Mensagem '{Texto}' de {Telefone} ({Orador}) desconsiderada: não corresponde a resposta de convite.", textoMensagem, telefone, orador.Nome);
-            return false;
-        }
 
         // Registrar no histórico a mensagem recebida de resposta válida
         var historicoRecebido = new MensagemHistorico(
@@ -214,8 +237,15 @@ public class WhatsAppNotificationService : IWhatsAppNotificationService
             await _agendaRepository.AtualizarAsync(agendaAlvo, cancellationToken);
 
             var temaInfo = agendaAlvo.Discurso != null ? $"\n📖 *Tema:* Nº {agendaAlvo.Discurso.Numero} — {agendaAlvo.Discurso.Tema}" : "";
+            var enderecoInfo = !string.IsNullOrWhiteSpace(agendaAlvo.Congregacao?.Endereco)
+                ? $"\n📍 *Endereço:* {agendaAlvo.Congregacao.Endereco}"
+                : "";
+            var mapsInfo = !string.IsNullOrWhiteSpace(agendaAlvo.Congregacao?.LinkGoogleMaps)
+                ? $"\n🗺 *Google Maps:* {agendaAlvo.Congregacao.LinkGoogleMaps}"
+                : "";
+
             var confirmacaoMsg = $"Olá, irmão *{orador.Nome}*! 😊\n\n" +
-                                 $"Recebemos sua confirmação com muita alegria! Sua palestra na *Congregação {congregacaoNome}* para o dia *{agendaAlvo.DataHora:dd/MM/yyyy}* às *{agendaAlvo.DataHora:HH:mm}* está *CONFIRMADA* com sucesso.{temaInfo}\n\n" +
+                                 $"Recebemos sua confirmação com muita alegria! Sua palestra na *Congregação {congregacaoNome}* para o dia *{agendaAlvo.DataHora:dd/MM/yyyy}* às *{agendaAlvo.DataHora:HH:mm}* está *CONFIRMADA* com sucesso.{temaInfo}{enderecoInfo}{mapsInfo}\n\n" +
                                  $"Muito obrigado por sua amorosa disposição em nos servir. Que Jeová abençoe ricamente sua preparação! Nos vemos em breve. 🤝";
 
             await EnviarTextoAsync(numeroDestino, confirmacaoMsg, agendaAlvo.Id, cancellationToken);

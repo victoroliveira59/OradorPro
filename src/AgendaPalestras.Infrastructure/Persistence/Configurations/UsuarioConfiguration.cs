@@ -35,5 +35,10 @@ public class UsuarioConfiguration : IEntityTypeConfiguration<Usuario>
 
         builder.Property(u => u.CriadoEm)
             .IsRequired();
+
+        builder.HasOne(u => u.Congregacao)
+            .WithMany()
+            .HasForeignKey(u => u.CongregacaoId)
+            .OnDelete(DeleteBehavior.SetNull);
     }
 }

@@ -17,14 +17,36 @@ public class CongregacoesController : Controller
         _service = service;
     }
 
+    private Guid? ObterCongregacaoIdUsuarioLogado()
+    {
+        var claim = User.FindFirst("CongregacaoId")?.Value;
+        if (Guid.TryParse(claim, out var id)) return id;
+        return null;
+    }
+
     public async Task<IActionResult> Index()
     {
+        var userCongId = ObterCongregacaoIdUsuarioLogado();
+        if (userCongId.HasValue)
+        {
+            var minhaCong = await _service.ObterPorIdAsync(userCongId.Value);
+            var lista = minhaCong != null ? new List<CongregacaoDto> { minhaCong } : new List<CongregacaoDto>();
+            return View(lista);
+        }
+
         var congregacoes = await _service.ListarTodasAsync();
         return View(congregacoes);
     }
 
     public IActionResult Create()
     {
+        var userCongId = ObterCongregacaoIdUsuarioLogado();
+        if (userCongId.HasValue)
+        {
+            TempData["Success"] = "Você já possui uma congregação vinculada ao seu usuário. Você pode editar os dados abaixo.";
+            return RedirectToAction(nameof(Edit), new { id = userCongId.Value });
+        }
+
         return View(new CriarCongregacaoDto("", "", "", "", ""));
     }
 
@@ -53,10 +75,16 @@ public class CongregacoesController : Controller
 
     public async Task<IActionResult> Edit(Guid id)
     {
+        var userCongId = ObterCongregacaoIdUsuarioLogado();
+        if (userCongId.HasValue && userCongId.Value != id)
+        {
+            return RedirectToAction(nameof(Edit), new { id = userCongId.Value });
+        }
+
         var c = await _service.ObterPorIdAsync(id);
         if (c == null) return NotFound();
 
-        var dto = new AtualizarCongregacaoDto(c.Id, c.Nome, c.Cidade, c.Circuito, c.DiasReuniao, c.HorarioReuniao, c.Ativo);
+        var dto = new AtualizarCongregacaoDto(c.Id, c.Nome, c.Cidade, c.Circuito, c.DiasReuniao, c.HorarioReuniao, c.Ativo, c.Endereco, c.LinkGoogleMaps);
         return View(dto);
     }
 

@@ -24,9 +24,22 @@ public class ProgramacaoController : Controller
         _pdfService = pdfService;
     }
 
+    private Guid? ObterCongregacaoIdUsuarioLogado()
+    {
+        var claim = User.FindFirst("CongregacaoId")?.Value;
+        if (Guid.TryParse(claim, out var id)) return id;
+        return null;
+    }
+
     [HttpGet]
     public async Task<IActionResult> Index(int? ano, int? mes, Guid? congregacaoId)
     {
+        var userCongId = ObterCongregacaoIdUsuarioLogado();
+        if (userCongId.HasValue)
+        {
+            congregacaoId = userCongId.Value;
+        }
+
         var dataReferencia = (ano.HasValue && mes.HasValue && mes.Value >= 1 && mes.Value <= 12)
             ? new DateTime(ano.Value, mes.Value, 1)
             : new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1);
@@ -40,7 +53,9 @@ public class ProgramacaoController : Controller
         var inicioMesUtc = DateTime.SpecifyKind(primeiroDiaMes.Date, DateTimeKind.Utc);
         var fimMesUtc = DateTime.SpecifyKind(ultimoDiaMes.Date.AddDays(1).AddSeconds(-1), DateTimeKind.Utc);
 
-        var congregacoes = await _congregacaoService.ListarTodasAsync();
+        var congregacoes = userCongId.HasValue
+            ? (await _congregacaoService.ObterPorIdAsync(userCongId.Value) is { } c ? new List<CongregacaoDto> { c } : new List<CongregacaoDto>())
+            : await _congregacaoService.ListarTodasAsync();
 
         if (!congregacaoId.HasValue && congregacoes.Count == 1)
         {
@@ -117,7 +132,16 @@ public class ProgramacaoController : Controller
         var inicioMesUtc = DateTime.SpecifyKind(primeiroDiaMes.Date, DateTimeKind.Utc);
         var fimMesUtc = DateTime.SpecifyKind(ultimoDiaMes.Date.AddDays(1).AddSeconds(-1), DateTimeKind.Utc);
 
-        var congregacoes = await _congregacaoService.ListarTodasAsync();
+        var userCongId = ObterCongregacaoIdUsuarioLogado();
+        if (userCongId.HasValue)
+        {
+            congregacaoId = userCongId.Value;
+        }
+
+        var congregacoes = userCongId.HasValue
+            ? (await _congregacaoService.ObterPorIdAsync(userCongId.Value) is { } c ? new List<CongregacaoDto> { c } : new List<CongregacaoDto>())
+            : await _congregacaoService.ListarTodasAsync();
+
         if (!congregacaoId.HasValue && congregacoes.Count == 1)
         {
             congregacaoId = congregacoes[0].Id;

@@ -291,4 +291,77 @@ public class WhatsAppTests
         Assert.Contains("Agradecemos de coração", mensagemEnviada);
         _mockAgendaRepo.Verify(r => r.AtualizarAsync(agenda, It.IsAny<CancellationToken>()), Times.Once);
     }
+
+    [Fact]
+    public async Task ProcessarRespostaWebhook_QuandoEstavaRecusadoEOradorResponde1_DeveReverterParaConfirmadoELimparMotivo()
+    {
+        var cong = new Congregacao("Congregação Central", "Belo Horizonte", "MG", "Domingo", "19:00");
+        var orador = new Orador(cong.Id, "Hugo Alex", "(31) 99702-4077");
+        var discurso = new Discurso(10, "Tema Especial");
+        var agenda = new Agenda(cong.Id, orador.Id, discurso.Id, DateTime.UtcNow.AddDays(14));
+        agenda.MarcarConviteEnviado(DateTime.UtcNow);
+        agenda.Recusar("Recusado pelo orador via WhatsApp");
+
+        typeof(Agenda).GetProperty("Congregacao")?.SetValue(agenda, cong);
+        typeof(Agenda).GetProperty("Orador")?.SetValue(agenda, orador);
+        typeof(Agenda).GetProperty("Discurso")?.SetValue(agenda, discurso);
+
+        _mockHistoricoRepo.Setup(r => r.JaExisteIdentificadorProvedorAsync("AC8A0E4BDA2C948E2AAC3DCC6625180D", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false);
+
+        _mockOradorRepo.Setup(r => r.ListarTodosAsync(null, false, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<Orador> { orador });
+
+        _mockAgendaRepo.Setup(r => r.ObterPorPeriodoAsync(It.IsAny<DateTime>(), It.IsAny<DateTime>(), null, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<Agenda> { agenda });
+
+        var service = CriarService();
+
+        // Orador agora manda "1" para confirmar
+        var processado = await service.ProcessarRespostaWebhookAsync("553197024077", "1", "AC8A0E4BDA2C948E2AAC3DCC6625180D");
+
+        Assert.True(processado);
+        Assert.Equal(StatusPalestra.Confirmado, agenda.Status);
+        Assert.Null(agenda.MotivoCancelamentoOuRecusa);
+        _mockAgendaRepo.Verify(r => r.AtualizarAsync(agenda, It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task EnviarConvitePalestra_ComEnderecoELinkMaps_DeveIncluirNaMensagem()
+    {
+        var cong = new Congregacao(
+            "Congregação Central",
+            "Belo Horizonte",
+            "MG",
+            "Domingo",
+            "19:00",
+            endereco: "Av. Principal, 123",
+            linkGoogleMaps: "https://maps.google.com/?q=loc"
+        );
+        var orador = new Orador(cong.Id, "Hugo Alex", "31997024077");
+        var discurso = new Discurso(10, "Tema Importante");
+        var agenda = new Agenda(cong.Id, orador.Id, discurso.Id, DateTime.UtcNow.AddDays(7));
+
+        typeof(Agenda).GetProperty("Congregacao")?.SetValue(agenda, cong);
+        typeof(Agenda).GetProperty("Orador")?.SetValue(agenda, orador);
+        typeof(Agenda).GetProperty("Discurso")?.SetValue(agenda, discurso);
+
+        _mockAgendaRepo.Setup(r => r.ObterPorIdAsync(agenda.Id, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(agenda);
+
+        string? mensagemEnviada = null;
+        _mockEvolutionApi.Setup(e => e.EnviarTextoAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .Callback<string, string, CancellationToken>((tel, msg, ct) => mensagemEnviada = msg)
+            .ReturnsAsync(new ResultadoEnvioMensagem(true, "msg_maps_123"));
+
+        var service = CriarService();
+
+        var res = await service.EnviarConvitePalestraAsync(agenda.Id);
+
+        Assert.True(res.Sucesso);
+        Assert.NotNull(mensagemEnviada);
+        Assert.Contains("Av. Principal, 123", mensagemEnviada);
+        Assert.Contains("https://maps.google.com/?q=loc", mensagemEnviada);
+    }
 }
+

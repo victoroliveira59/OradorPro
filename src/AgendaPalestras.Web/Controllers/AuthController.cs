@@ -58,6 +58,13 @@ public class AuthController : Controller
             new(ClaimTypes.Role, usuario.Papel)
         };
 
+        if (usuario.CongregacaoId.HasValue)
+        {
+            claims.Add(new Claim("CongregacaoId", usuario.CongregacaoId.Value.ToString()));
+            if (!string.IsNullOrWhiteSpace(usuario.CongregacaoNome))
+                claims.Add(new Claim("CongregacaoNome", usuario.CongregacaoNome));
+        }
+
         var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
         var principal = new ClaimsPrincipal(identity);
 
@@ -70,6 +77,69 @@ public class AuthController : Controller
         await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, principal, authProperties);
 
         return RedirectToLocal(returnUrl);
+    }
+
+    [HttpGet]
+    [AllowAnonymous]
+    public IActionResult Register()
+    {
+        if (User.Identity?.IsAuthenticated == true)
+        {
+            return RedirectToAction("Index", "Home");
+        }
+
+        return View(new RegistrarUsuarioDto("", "", "", "", "", "", "", "", "", ""));
+    }
+
+    [HttpPost]
+    [AllowAnonymous]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Register(RegistrarUsuarioDto dto)
+    {
+        if (string.IsNullOrWhiteSpace(dto.Nome) || string.IsNullOrWhiteSpace(dto.Email) || string.IsNullOrWhiteSpace(dto.Senha))
+        {
+            ModelState.AddModelError(string.Empty, "Nome, e-mail e senha são obrigatórios.");
+            return View(dto);
+        }
+
+        if (string.IsNullOrWhiteSpace(dto.NomeCongregacao))
+        {
+            ModelState.AddModelError(string.Empty, "O nome da congregação é obrigatório.");
+            return View(dto);
+        }
+
+        try
+        {
+            var usuario = await _authService.RegistrarUsuarioAsync(dto);
+
+            var claims = new List<Claim>
+            {
+                new(ClaimTypes.NameIdentifier, usuario.Id.ToString()),
+                new(ClaimTypes.Name, usuario.Nome),
+                new(ClaimTypes.Email, usuario.Email),
+                new(ClaimTypes.Role, usuario.Papel)
+            };
+
+            if (usuario.CongregacaoId.HasValue)
+            {
+                claims.Add(new Claim("CongregacaoId", usuario.CongregacaoId.Value.ToString()));
+                if (!string.IsNullOrWhiteSpace(usuario.CongregacaoNome))
+                    claims.Add(new Claim("CongregacaoNome", usuario.CongregacaoNome));
+            }
+
+            var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
+            var principal = new ClaimsPrincipal(identity);
+
+            await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, principal);
+
+            TempData["Success"] = $"Conta criada com sucesso! Bem-vindo à Congregação {usuario.CongregacaoNome}.";
+            return RedirectToAction("Index", "Agenda");
+        }
+        catch (AgendaPalestras.Domain.Exceptions.DomainException ex)
+        {
+            ModelState.AddModelError(string.Empty, ex.Message);
+            return View(dto);
+        }
     }
 
     [HttpPost]

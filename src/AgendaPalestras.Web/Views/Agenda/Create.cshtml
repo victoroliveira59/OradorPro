@@ -19,13 +19,22 @@
 
                     <div class="mb-3">
                         <label asp-for="CongregacaoId" class="form-label">Congregação de Destino (Hospedeira) *</label>
-                        <select asp-for="CongregacaoId" class="form-select" required>
-                            <option value="">-- Selecione a Congregação --</option>
-                            @foreach (var c in congregacoes)
-                            {
-                                <option value="@c.Id">@c.Nome — @c.Cidade (@c.DiasReuniao às @c.HorarioReuniao)</option>
-                            }
-                        </select>
+                        @if (congregacoes.Count() == 1)
+                        {
+                            var c = congregacoes.First();
+                            <input type="hidden" asp-for="CongregacaoId" value="@c.Id" />
+                            <input class="form-control bg-light" value="@c.Nome — @c.Cidade (@c.DiasReuniao às @c.HorarioReuniao)" readonly />
+                        }
+                        else
+                        {
+                            <select asp-for="CongregacaoId" class="form-select" required>
+                                <option value="">-- Selecione a Congregação --</option>
+                                @foreach (var c in congregacoes)
+                                {
+                                    <option value="@c.Id">@c.Nome — @c.Cidade (@c.DiasReuniao às @c.HorarioReuniao)</option>
+                                }
+                            </select>
+                        }
                         <span asp-validation-for="CongregacaoId" class="text-danger small"></span>
                     </div>
 
