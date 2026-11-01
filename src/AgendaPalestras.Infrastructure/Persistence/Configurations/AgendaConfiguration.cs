@@ -18,6 +18,15 @@ public class AgendaConfiguration : IEntityTypeConfiguration<Agenda>
         builder.Property(a => a.MotivoCancelamentoOuRecusa)
             .HasMaxLength(500);
 
+        builder.Property(a => a.PresidenteReuniao)
+            .HasMaxLength(150);
+
+        builder.Property(a => a.LeitorSentinela)
+            .HasMaxLength(150);
+
+        builder.Property(a => a.OracaoFinal)
+            .HasMaxLength(250);
+
         builder.Property(a => a.Status)
             .IsRequired();
 

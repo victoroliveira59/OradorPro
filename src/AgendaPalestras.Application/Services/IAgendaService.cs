@@ -12,4 +12,6 @@ public interface IAgendaService
     Task RecusarAsync(Guid id, string? motivo = null, CancellationToken cancellationToken = default);
     Task CancelarAsync(CancelarAgendaDto dto, CancellationToken cancellationToken = default);
     Task<bool> ExisteConflitoCongregacaoAsync(Guid congregacaoId, DateTime dataHora, Guid? ignorarAgendaId = null, CancellationToken cancellationToken = default);
+    Task AtualizarDesignacoesReuniaoAsync(AtualizarDesignacoesReuniaoDto dto, CancellationToken cancellationToken = default);
+    Task SalvarDesignacoesEmLoteAsync(IEnumerable<AtualizarDesignacoesReuniaoDto> lista, CancellationToken cancellationToken = default);
 }

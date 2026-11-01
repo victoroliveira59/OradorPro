@@ -24,6 +24,10 @@ public class Agenda : BaseEntity
     public DateTime? DataResposta { get; private set; }
     public DateTime? DataLembreteEnviado { get; private set; }
 
+    public string? PresidenteReuniao { get; private set; }
+    public string? LeitorSentinela { get; private set; }
+    public string? OracaoFinal { get; private set; }
+
     protected Agenda() { }
 
     public Agenda(
@@ -124,5 +128,13 @@ public class Agenda : BaseEntity
     public void MarcarLembreteEnviado(DateTime dataEnvio)
     {
         DataLembreteEnviado = dataEnvio.Kind == DateTimeKind.Utc ? dataEnvio : dataEnvio.ToUniversalTime();
+    }
+
+    public void AtualizarDesignacoesReuniao(string? presidente, string? leitorSentinela, string? oracaoFinal)
+    {
+        PresidenteReuniao = string.IsNullOrWhiteSpace(presidente) ? null : presidente.Trim();
+        LeitorSentinela = string.IsNullOrWhiteSpace(leitorSentinela) ? null : leitorSentinela.Trim();
+        OracaoFinal = string.IsNullOrWhiteSpace(oracaoFinal) ? null : oracaoFinal.Trim();
+        MarcarComoAtualizado();
     }
 }
