@@ -231,4 +231,64 @@ public class WhatsAppTests
         Assert.False(processado);
         _mockAgendaRepo.Verify(r => r.AtualizarAsync(It.IsAny<Agenda>(), It.IsAny<CancellationToken>()), Times.Never);
     }
+
+    [Theory]
+    [InlineData("553197024077", "(31) 99702-4077", true)]
+    [InlineData("553197024077", "31997024077", true)]
+    [InlineData("553197024077", "5531997024077", true)]
+    [InlineData("3197024077", "31997024077", true)]
+    [InlineData("553197024077", "553197024077", true)]
+    [InlineData("551197024077", "5531997024077", false)] // DDDs diferentes
+    [InlineData("553188884077", "5531997024077", false)] // Números diferentes
+    public void TelefonesSaoCompativeis_DeveIdentificarNumerosComOuSemNonoDigito(string tel1, string tel2, bool esperado)
+    {
+        var resultado = WhatsAppNotificationService.TelefonesSaoCompativeis(tel1, tel2);
+        Assert.Equal(esperado, resultado);
+    }
+
+    [Fact]
+    public async Task ProcessarRespostaWebhook_CenarioHugoAlex_Com8DigitosNoWebhookE9DigitosNoCadastro_DeveRecusarEEnviarMensagemAmigavel()
+    {
+        var cong = new Congregacao("Congregação Central", "Belo Horizonte", "MG", "Domingo", "19:00");
+        var orador = new Orador(cong.Id, "Hugo Alex", "(31) 99702-4077");
+        var discurso = new Discurso(10, "Tema Especial");
+        var agenda = new Agenda(cong.Id, orador.Id, discurso.Id, DateTime.UtcNow.AddDays(14));
+        agenda.MarcarConviteEnviado(DateTime.UtcNow);
+
+        typeof(Agenda).GetProperty("Congregacao")?.SetValue(agenda, cong);
+        typeof(Agenda).GetProperty("Orador")?.SetValue(agenda, orador);
+        typeof(Agenda).GetProperty("Discurso")?.SetValue(agenda, discurso);
+
+        _mockHistoricoRepo.Setup(r => r.JaExisteIdentificadorProvedorAsync("AC8A0E4BDA2C948E2AAC3DCC6625180C", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false);
+
+        _mockOradorRepo.Setup(r => r.ListarTodosAsync(null, false, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<Orador> { orador });
+
+        _mockAgendaRepo.Setup(r => r.ObterPorPeriodoAsync(It.IsAny<DateTime>(), It.IsAny<DateTime>(), null, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<Agenda> { agenda });
+
+        string? mensagemEnviada = null;
+        string? telefoneEnviado = null;
+        _mockEvolutionApi.Setup(e => e.EnviarTextoAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .Callback<string, string, CancellationToken>((tel, msg, ct) =>
+            {
+                telefoneEnviado = tel;
+                mensagemEnviada = msg;
+            })
+            .ReturnsAsync(new ResultadoEnvioMensagem(true, "evo_resp_123"));
+
+        var service = CriarService();
+
+        // Webhook chega com 553197024077 (8 dígitos após DDD) e texto "2"
+        var processado = await service.ProcessarRespostaWebhookAsync("553197024077", "2", "AC8A0E4BDA2C948E2AAC3DCC6625180C");
+
+        Assert.True(processado);
+        Assert.Equal(StatusPalestra.Recusado, agenda.Status);
+        Assert.Equal("553197024077", telefoneEnviado);
+        Assert.NotNull(mensagemEnviada);
+        Assert.Contains("Olá, irmão *Hugo Alex*! 🙏", mensagemEnviada);
+        Assert.Contains("Agradecemos de coração", mensagemEnviada);
+        _mockAgendaRepo.Verify(r => r.AtualizarAsync(agenda, It.IsAny<CancellationToken>()), Times.Once);
+    }
 }

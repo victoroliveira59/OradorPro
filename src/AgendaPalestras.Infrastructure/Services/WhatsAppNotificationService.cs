@@ -145,13 +145,12 @@ public class WhatsAppNotificationService : IWhatsAppNotificationService
 
         // 2. Localizar orador
         var oradores = await _oradorRepository.ListarTodosAsync(null, false, cancellationToken);
-        var orador = oradores.FirstOrDefault(o =>
-            Regex.Replace(o.TelefoneWhatsapp, @"\D", "") == telefoneLimpo ||
-            telefoneLimpo.EndsWith(Regex.Replace(o.TelefoneWhatsapp, @"\D", "")));
+        var orador = oradores.FirstOrDefault(o => TelefonesSaoCompativeis(o.TelefoneWhatsapp, telefoneLimpo));
 
         if (orador == null)
         {
             // Remetente não é orador cadastrado: ignorar silenciosamente para não interferir nas conversas pessoais do admin
+            _logger.LogInformation("Mensagem recebida de {Telefone}, mas nenhum orador cadastrado corresponde ao número.", telefone);
             return false;
         }
 
@@ -166,7 +165,7 @@ public class WhatsAppNotificationService : IWhatsAppNotificationService
         if (agendasPendentes.Count == 0)
         {
             // Orador não possui nenhum convite pendente aguardando resposta: desconsiderar silenciosamente
-            _logger.LogInformation("Mensagem de {Telefone} desconsiderada: nenhum convite pendente aguardando resposta.", telefone);
+            _logger.LogInformation("Mensagem de {Telefone} ({Orador}) desconsiderada: nenhum convite pendente aguardando resposta.", telefone, orador.Nome);
             return false;
         }
 
@@ -190,7 +189,7 @@ public class WhatsAppNotificationService : IWhatsAppNotificationService
         // Se não for uma resposta em específico (ex: "bom dia", conversas comuns, outras dúvidas), desconsiderar silenciosamente!
         if (!isConfirmacao && !isRecusa)
         {
-            _logger.LogInformation("Mensagem '{Texto}' de {Telefone} desconsiderada: não corresponde a resposta de convite.", textoMensagem, telefone);
+            _logger.LogInformation("Mensagem '{Texto}' de {Telefone} ({Orador}) desconsiderada: não corresponde a resposta de convite.", textoMensagem, telefone, orador.Nome);
             return false;
         }
 
@@ -206,13 +205,20 @@ public class WhatsAppNotificationService : IWhatsAppNotificationService
         );
         await _historicoRepository.AdicionarAsync(historicoRecebido, cancellationToken);
 
+        var numeroDestino = !string.IsNullOrWhiteSpace(telefone) ? telefone : orador.TelefoneWhatsapp;
+        var congregacaoNome = agendaAlvo.Congregacao?.Nome ?? "designada";
+
         if (isConfirmacao)
         {
             agendaAlvo.Confirmar();
             await _agendaRepository.AtualizarAsync(agendaAlvo, cancellationToken);
 
-            var confirmacaoMsg = $"Obrigado, irmão {orador.Nome}! Sua palestra para o dia {agendaAlvo.DataHora:dd/MM/yyyy} na Congregação {agendaAlvo.Congregacao?.Nome} foi *CONFIRMADA* com sucesso!";
-            await EnviarTextoAsync(orador.TelefoneWhatsapp, confirmacaoMsg, agendaAlvo.Id, cancellationToken);
+            var temaInfo = agendaAlvo.Discurso != null ? $"\n📖 *Tema:* Nº {agendaAlvo.Discurso.Numero} — {agendaAlvo.Discurso.Tema}" : "";
+            var confirmacaoMsg = $"Olá, irmão *{orador.Nome}*! 😊\n\n" +
+                                 $"Recebemos sua confirmação com muita alegria! Sua palestra na *Congregação {congregacaoNome}* para o dia *{agendaAlvo.DataHora:dd/MM/yyyy}* às *{agendaAlvo.DataHora:HH:mm}* está *CONFIRMADA* com sucesso.{temaInfo}\n\n" +
+                                 $"Muito obrigado por sua amorosa disposição em nos servir. Que Jeová abençoe ricamente sua preparação! Nos vemos em breve. 🤝";
+
+            await EnviarTextoAsync(numeroDestino, confirmacaoMsg, agendaAlvo.Id, cancellationToken);
             return true;
         }
         else
@@ -220,10 +226,50 @@ public class WhatsAppNotificationService : IWhatsAppNotificationService
             agendaAlvo.Recusar("Recusado pelo orador via WhatsApp");
             await _agendaRepository.AtualizarAsync(agendaAlvo, cancellationToken);
 
-            var recusaMsg = $"Compreendido, irmão {orador.Nome}. Registramos a recusa do convite para o dia {agendaAlvo.DataHora:dd/MM/yyyy}. Agradecemos por nos avisar!";
-            await EnviarTextoAsync(orador.TelefoneWhatsapp, recusaMsg, agendaAlvo.Id, cancellationToken);
+            var recusaMsg = $"Olá, irmão *{orador.Nome}*! 🙏\n\n" +
+                            $"Compreendemos perfeitamente a sua resposta. Registramos que você *não poderá* comparecer na *Congregação {congregacaoNome}* no dia *{agendaAlvo.DataHora:dd/MM/yyyy}*.\n\n" +
+                            $"Agradecemos de coração por nos avisar com antecedência! Esperamos poder contar com você em uma próxima oportunidade. Desejamos ricas bênçãos para você e sua família. Tenha uma excelente semana! 🤝";
+
+            await EnviarTextoAsync(numeroDestino, recusaMsg, agendaAlvo.Id, cancellationToken);
             return true;
         }
+    }
+
+    public static bool TelefonesSaoCompativeis(string? tel1, string? tel2)
+    {
+        if (string.IsNullOrWhiteSpace(tel1) || string.IsNullOrWhiteSpace(tel2))
+            return false;
+
+        var d1 = Regex.Replace(tel1, @"\D", "");
+        var d2 = Regex.Replace(tel2, @"\D", "");
+
+        if (d1 == d2) return true;
+        if (d1.EndsWith(d2) || d2.EndsWith(d1)) return true;
+
+        // Remover DDI 55 se houver
+        var s1 = d1.StartsWith("55") && d1.Length >= 12 ? d1.Substring(2) : d1;
+        var s2 = d2.StartsWith("55") && d2.Length >= 12 ? d2.Substring(2) : d2;
+
+        // Remover zero inicial do DDD (ex: 031 -> 31)
+        if (s1.StartsWith("0") && s1.Length >= 11) s1 = s1.Substring(1);
+        if (s2.StartsWith("0") && s2.Length >= 11) s2 = s2.Substring(1);
+
+        if (s1 == s2) return true;
+        if (s1.EndsWith(s2) || s2.EndsWith(s1)) return true;
+
+        // Compatibilidade Brasil 8 vs 9 dígitos após DDD (DDD igual + 8 últimos dígitos iguais)
+        if (s1.Length >= 10 && s2.Length >= 10)
+        {
+            var ddd1 = s1.Substring(0, 2);
+            var ddd2 = s2.Substring(0, 2);
+            var final1 = s1.Substring(s1.Length - 8);
+            var final2 = s2.Substring(s2.Length - 8);
+
+            if (ddd1 == ddd2 && final1 == final2)
+                return true;
+        }
+
+        return false;
     }
 
     private static bool IsRespostaConfirmacao(string texto)
@@ -237,6 +283,9 @@ public class WhatsAppNotificationService : IWhatsAppNotificationService
                texto == "confirmado" ||
                texto.StartsWith("1 ") ||
                texto.StartsWith("1-") ||
+               texto.Contains("confirmo") ||
+               texto.Contains("confirmar") ||
+               texto.Contains("pode confirmar") ||
                texto == "ok, confirmo" ||
                texto == "pode confirmar";
     }
@@ -253,8 +302,12 @@ public class WhatsAppNotificationService : IWhatsAppNotificationService
                texto == "recusado" ||
                texto.StartsWith("2 ") ||
                texto.StartsWith("2-") ||
-               texto == "não posso" ||
-               texto == "nao posso";
+               texto.Contains("não posso") ||
+               texto.Contains("nao posso") ||
+               texto.Contains("não poderei") ||
+               texto.Contains("nao poderei") ||
+               texto.Contains("infelizmente não") ||
+               texto.Contains("infelizmente nao");
     }
 
     private static string FormatarTelefoneParaEnvio(string telefone)
