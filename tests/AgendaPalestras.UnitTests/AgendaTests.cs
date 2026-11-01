@@ -182,7 +182,7 @@ public class AgendaTests
         var dto = new CriarAgendaDto(cong.Id, orador.Id, discurso.Id, dataHora);
 
         var ex = await Assert.ThrowsAsync<DomainException>(() => service.CriarAsync(dto));
-        Assert.Contains("já possui um agendamento nesta data e horário", ex.Message);
+        Assert.Contains("já possui um agendamento marcado para este dia", ex.Message);
     }
 
     [Fact]
@@ -207,7 +207,7 @@ public class AgendaTests
         mockDiscursoRepo.Setup(r => r.ObterPorIdAsync(discurso.Id, It.IsAny<CancellationToken>()))
             .ReturnsAsync(discurso);
 
-        // Sem conflito de orador, mas COM conflito de congregação
+        // Sem conflito de orador, mas COM conflito de congregação no mesmo dia
         mockAgendaRepo.Setup(r => r.ExisteConflitoOradorAsync(orador.Id, dataHora, null, It.IsAny<CancellationToken>()))
             .ReturnsAsync(false);
         mockAgendaRepo.Setup(r => r.ExisteConflitoCongregacaoAsync(cong.Id, dataHora, null, It.IsAny<CancellationToken>()))
@@ -223,6 +223,29 @@ public class AgendaTests
         var dto = new CriarAgendaDto(cong.Id, orador.Id, discurso.Id, dataHora);
 
         var ex = await Assert.ThrowsAsync<DomainException>(() => service.CriarAsync(dto));
-        Assert.Contains("já possui uma palestra agendada", ex.Message);
+        Assert.Contains("já possui uma palestra/orador marcado para este dia", ex.Message);
+    }
+
+    [Fact]
+    public async Task ExisteConflitoCongregacaoAsync_DeveRepassarParaRepositorio()
+    {
+        var mockAgendaRepo = new Mock<IAgendaRepository>();
+        var congId = Guid.NewGuid();
+        var data = DateTime.UtcNow.AddDays(5);
+
+        mockAgendaRepo.Setup(r => r.ExisteConflitoCongregacaoAsync(congId, data, null, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+
+        var service = new AgendaService(
+            mockAgendaRepo.Object,
+            new Mock<ICongregacaoRepository>().Object,
+            new Mock<IOradorRepository>().Object,
+            new Mock<IDiscursoRepository>().Object,
+            new CriarAgendaValidator());
+
+        var conflito = await service.ExisteConflitoCongregacaoAsync(congId, data);
+
+        Assert.True(conflito);
+        mockAgendaRepo.Verify(r => r.ExisteConflitoCongregacaoAsync(congId, data, null, It.IsAny<CancellationToken>()), Times.Once);
     }
 }

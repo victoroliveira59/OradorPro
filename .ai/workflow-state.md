@@ -1,24 +1,24 @@
 # Workflow State — Agenda de Palestras
 
 - **Project:** Agenda de Palestras
-- **Current Phase:** 10 - Conexão WhatsApp Admin (Evolution API e QR Code)
-- **Current Task:** T10.05 - Integrar link no menu de navegação e testes automatizados da conexão
+- **Current Phase:** 11 - Calendário Mensal e Bloqueio Diário de Agendamento
+- **Current Task:** T11.05 - Executar testes automatizados, coletar evidências e relatório de conclusão
 - **Workflow Status:** DONE
 - **Active Agent:** MAESTRO
 - **Correction Iteration:** 0/3
-- **Last Completed Task:** T10.05 - Conexão WhatsApp Admin e QR Code
+- **Last Completed Task:** T11.05 - Calendário Mensal e Bloqueio Diário de Agendamento
 - **Blockers:** none
-- **Last Updated:** 2026-11-01 12:26 BRT
+- **Last Updated:** 2026-11-01 15:01 BRT
 
 ---
 
 ## Current Objective
-Fase 10 (Conexão WhatsApp Admin com Evolution API v2 e QR Code) desenvolvida, integrada com Clean Architecture, com migration executada no PostgreSQL, View Razor moderna com QR Code e Pairing Code, e 48 testes unitários passando.
+Fase 11 (Calendário Mensal e Bloqueio Diário de Agendamento) concluída com sucesso: visualização em grade de calendário com discursos completos, navegação rápida por meses/anos, botão Hoje, alternância Calendário/Lista, atalho para dias vagos e bloqueio de múltiplos agendamentos no mesmo dia tanto na UI quanto no backend.
 
 ---
 
 ## Next Action
-Orientar o usuário a reiniciar a aplicação no seu ambiente para carregar as novas rotas e a interface de conexão do WhatsApp.
+Apresentar a nova funcionalidade ao usuário e orientar sobre a navegação e regras de agendamento por dia.
 
 ---
 

@@ -1,6 +1,7 @@
 using AgendaPalestras.Application.DTOs;
 using AgendaPalestras.Application.Services;
 using AgendaPalestras.Domain.Exceptions;
+using AgendaPalestras.Web.Models;
 using FluentValidation;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -30,24 +31,86 @@ public class AgendaController : Controller
         _whatsAppService = whatsAppService;
     }
 
-    public async Task<IActionResult> Index(DateTime? inicio, DateTime? fim, Guid? congregacaoId)
+    public async Task<IActionResult> Index(int? ano, int? mes, Guid? congregacaoId, string modo = "calendario")
     {
-        var dataInicio = inicio ?? DateTime.Today.AddDays(-7);
-        var dataFim = fim ?? DateTime.Today.AddMonths(2);
+        var dataReferencia = (ano.HasValue && mes.HasValue && mes.Value >= 1 && mes.Value <= 12)
+            ? new DateTime(ano.Value, mes.Value, 1)
+            : new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1);
 
-        ViewBag.DataInicio = dataInicio.ToString("yyyy-MM-dd");
-        ViewBag.DataFim = dataFim.ToString("yyyy-MM-dd");
-        ViewBag.CongregacaoId = congregacaoId;
-        ViewBag.Congregacoes = await _congregacaoService.ListarTodasAsync();
+        var anoAtual = dataReferencia.Year;
+        var mesAtual = dataReferencia.Month;
 
-        var agendas = await _agendaService.ObterPorPeriodoAsync(dataInicio, dataFim, congregacaoId);
-        return View(agendas);
+        var primeiroDiaMes = new DateTime(anoAtual, mesAtual, 1);
+        var ultimoDiaMes = primeiroDiaMes.AddMonths(1).AddDays(-1);
+
+        // Grade do calendário (domingo a sábado)
+        var inicioGrade = primeiroDiaMes.AddDays(-(int)primeiroDiaMes.DayOfWeek);
+        var diasAposFim = (6 - (int)ultimoDiaMes.DayOfWeek + 7) % 7;
+        var fimGrade = ultimoDiaMes.AddDays(diasAposFim);
+
+        // Garantir visualização consistente com pelo menos 5 semanas (35 dias)
+        var totalDias = (fimGrade - inicioGrade).Days + 1;
+        if (totalDias < 35)
+        {
+            fimGrade = fimGrade.AddDays(35 - totalDias);
+        }
+
+        var inicioGradeUtc = DateTime.SpecifyKind(inicioGrade.Date, DateTimeKind.Utc);
+        var fimGradeUtc = DateTime.SpecifyKind(fimGrade.Date.AddDays(1).AddSeconds(-1), DateTimeKind.Utc);
+
+        var agendas = await _agendaService.ObterPorPeriodoAsync(inicioGradeUtc, fimGradeUtc, congregacaoId);
+        var congregacoes = await _congregacaoService.ListarTodasAsync();
+
+        var diasGrade = new List<AgendaDiaCalendarioDto>();
+        for (var d = inicioGrade.Date; d <= fimGrade.Date; d = d.AddDays(1))
+        {
+            var dataDia = d.Date;
+            var palestrasDoDia = agendas
+                .Where(a => a.DataHora.Date == dataDia)
+                .OrderBy(a => a.DataHora)
+                .ToList();
+
+            diasGrade.Add(new AgendaDiaCalendarioDto
+            {
+                Data = dataDia,
+                PertenceAoMesAtual = d.Month == mesAtual,
+                EhHoje = dataDia == DateTime.Today,
+                Palestras = palestrasDoDia
+            });
+        }
+
+        var culturaPtBr = new System.Globalization.CultureInfo("pt-BR");
+        var nomeMes = primeiroDiaMes.ToString("MMMM", culturaPtBr);
+        var nomeMesCapitalizado = char.ToUpper(nomeMes[0]) + nomeMes.Substring(1);
+
+        var viewModel = new AgendaCalendarioViewModel
+        {
+            Ano = anoAtual,
+            Mes = mesAtual,
+            NomeMesAno = $"{nomeMesCapitalizado} de {anoAtual}",
+            CongregacaoId = congregacaoId,
+            ModoVisualizacao = modo,
+            MesAnterior = primeiroDiaMes.AddMonths(-1),
+            MesProximo = primeiroDiaMes.AddMonths(1),
+            Congregacoes = congregacoes,
+            Dias = diasGrade,
+            TodasAgendas = agendas.OrderBy(a => a.DataHora).ToList()
+        };
+
+        return View(viewModel);
     }
 
-    public async Task<IActionResult> Create()
+    public async Task<IActionResult> Create(string? data, Guid? congregacaoId)
     {
         await CarregarCombosAsync();
-        return View(new CriarAgendaDto(Guid.Empty, Guid.Empty, Guid.Empty, DateTime.Today.AddDays(7).AddHours(19)));
+
+        DateTime dataInicial = DateTime.Today.AddDays(7).AddHours(19);
+        if (!string.IsNullOrWhiteSpace(data) && DateTime.TryParse(data, out var parsedDate))
+        {
+            dataInicial = parsedDate.Date.AddHours(19);
+        }
+
+        return View(new CriarAgendaDto(congregacaoId ?? Guid.Empty, Guid.Empty, Guid.Empty, dataInicial));
     }
 
     [HttpPost]
@@ -187,6 +250,22 @@ public class AgendaController : Controller
             .ToList();
 
         return Json(discursos);
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> VerificarDisponibilidade(Guid congregacaoId, string data)
+    {
+        if (congregacaoId == Guid.Empty || string.IsNullOrWhiteSpace(data) || !DateTime.TryParse(data, out var parsedDate))
+        {
+            return Json(new { disponivel = true });
+        }
+
+        var conflito = await _agendaService.ExisteConflitoCongregacaoAsync(congregacaoId, parsedDate);
+        return Json(new
+        {
+            disponivel = !conflito,
+            mensagem = conflito ? "A congregação selecionada já possui um discurso/orador agendado para este dia." : null
+        });
     }
 
     private async Task CarregarCombosAsync()

@@ -65,11 +65,14 @@ public class AgendaRepository : IAgendaRepository
         CancellationToken cancellationToken = default)
     {
         var dataHoraUtc = ToUtc(dataHora);
+        var inicioDoDia = DateTime.SpecifyKind(dataHoraUtc.Date, DateTimeKind.Utc);
+        var fimDoDia = inicioDoDia.AddDays(1);
 
         var query = _context.Agendas
             .Where(a => a.OradorId == oradorId &&
-                        a.DataHora == dataHoraUtc &&
-                        a.Status != StatusPalestra.Cancelado);
+                        a.DataHora >= inicioDoDia && a.DataHora < fimDoDia &&
+                        a.Status != StatusPalestra.Cancelado &&
+                        a.Status != StatusPalestra.Recusado);
 
         if (ignorarAgendaId.HasValue)
         {
@@ -86,11 +89,14 @@ public class AgendaRepository : IAgendaRepository
         CancellationToken cancellationToken = default)
     {
         var dataHoraUtc = ToUtc(dataHora);
+        var inicioDoDia = DateTime.SpecifyKind(dataHoraUtc.Date, DateTimeKind.Utc);
+        var fimDoDia = inicioDoDia.AddDays(1);
 
         var query = _context.Agendas
             .Where(a => a.CongregacaoId == congregacaoId &&
-                        a.DataHora == dataHoraUtc &&
-                        a.Status != StatusPalestra.Cancelado);
+                        a.DataHora >= inicioDoDia && a.DataHora < fimDoDia &&
+                        a.Status != StatusPalestra.Cancelado &&
+                        a.Status != StatusPalestra.Recusado);
 
         if (ignorarAgendaId.HasValue)
         {

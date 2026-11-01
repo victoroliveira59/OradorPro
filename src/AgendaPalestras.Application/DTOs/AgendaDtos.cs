@@ -75,3 +75,27 @@ public record AtualizarAgendaDto(
 public record CancelarAgendaDto(
     Guid Id,
     string? Motivo = "");
+
+public class AgendaCalendarioDto
+{
+    public int Ano { get; set; }
+    public int Mes { get; set; }
+    public string NomeMesAno { get; set; } = string.Empty;
+    public Guid? CongregacaoId { get; set; }
+    public string ModoVisualizacao { get; set; } = "calendario";
+    public DateTime MesAnterior { get; set; }
+    public DateTime MesProximo { get; set; }
+    public IReadOnlyList<CongregacaoDto> Congregacoes { get; set; } = new List<CongregacaoDto>();
+    public IReadOnlyList<AgendaDiaCalendarioDto> Dias { get; set; } = new List<AgendaDiaCalendarioDto>();
+    public IReadOnlyList<AgendaDto> TodasAgendas { get; set; } = new List<AgendaDto>();
+}
+
+public class AgendaDiaCalendarioDto
+{
+    public DateTime Data { get; set; }
+    public int Dia => Data.Day;
+    public bool PertenceAoMesAtual { get; set; }
+    public bool EhHoje { get; set; }
+    public bool TemPalestra => Palestras.Count > 0;
+    public List<AgendaDto> Palestras { get; set; } = new();
+}

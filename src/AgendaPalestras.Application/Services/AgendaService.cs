@@ -70,14 +70,14 @@ public class AgendaService : IAgendaService
         if (!temDiscursoNoRepertorio)
             throw new DomainException($"O discurso '{discurso.Tema}' não faz parte do repertório cadastrado para o orador '{orador.Nome}'.");
 
-        // Validar conflitos de unicidade (ADR-0006)
+        // Validar conflitos de unicidade por dia (ADR-0006 e ADR-0010)
         var conflitoOrador = await _agendaRepository.ExisteConflitoOradorAsync(dto.OradorId, dto.DataHora, null, cancellationToken);
         if (conflitoOrador)
-            throw new DomainException($"O orador '{orador.Nome}' já possui um agendamento nesta data e horário.");
+            throw new DomainException($"O orador '{orador.Nome}' já possui um agendamento marcado para este dia.");
 
         var conflitoCongregacao = await _agendaRepository.ExisteConflitoCongregacaoAsync(dto.CongregacaoId, dto.DataHora, null, cancellationToken);
         if (conflitoCongregacao)
-            throw new DomainException($"A congregação '{congregacao.Nome}' já possui uma palestra agendada nesta data e horário.");
+            throw new DomainException($"A congregação '{congregacao.Nome}' já possui uma palestra/orador marcado para este dia.");
 
         var agenda = new Agenda(
             dto.CongregacaoId,
@@ -111,15 +111,15 @@ public class AgendaService : IAgendaService
         if (!temDiscursoNoRepertorio)
             throw new DomainException($"O discurso '{discurso.Tema}' não faz parte do repertório cadastrado para o orador '{orador.Nome}'.");
 
-        // Validar conflito de orador
+        // Validar conflito de orador no mesmo dia
         var conflitoOrador = await _agendaRepository.ExisteConflitoOradorAsync(agenda.OradorId, dto.DataHora, agenda.Id, cancellationToken);
         if (conflitoOrador)
-            throw new DomainException($"O orador '{orador.Nome}' já possui outro agendamento nesta data e horário.");
+            throw new DomainException($"O orador '{orador.Nome}' já possui outro agendamento marcado para este dia.");
 
-        // Validar conflito de congregação
+        // Validar conflito de congregação no mesmo dia
         var conflitoCongregacao = await _agendaRepository.ExisteConflitoCongregacaoAsync(agenda.CongregacaoId, dto.DataHora, agenda.Id, cancellationToken);
         if (conflitoCongregacao)
-            throw new DomainException("A congregação já possui outro agendamento nesta data e horário.");
+            throw new DomainException("A congregação já possui outro orador/discurso agendado para este dia.");
 
         agenda.Reagendar(dto.DataHora, dto.DiscursoId, dto.Observacoes);
         await _agendaRepository.AtualizarAsync(agenda, cancellationToken);
@@ -153,5 +153,14 @@ public class AgendaService : IAgendaService
 
         agenda.Cancelar(dto.Motivo);
         await _agendaRepository.AtualizarAsync(agenda, cancellationToken);
+    }
+
+    public async Task<bool> ExisteConflitoCongregacaoAsync(
+        Guid congregacaoId,
+        DateTime dataHora,
+        Guid? ignorarAgendaId = null,
+        CancellationToken cancellationToken = default)
+    {
+        return await _agendaRepository.ExisteConflitoCongregacaoAsync(congregacaoId, dataHora, ignorarAgendaId, cancellationToken);
     }
 }
