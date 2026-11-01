@@ -123,6 +123,7 @@ public class WhatsAppNotificationService : IWhatsAppNotificationService
         string telefone,
         string textoMensagem,
         string? messageId = null,
+        string? quotedMessageId = null,
         CancellationToken cancellationToken = default)
     {
         // 1. Idempotência por MessageId
@@ -139,6 +140,9 @@ public class WhatsAppNotificationService : IWhatsAppNotificationService
         var telefoneLimpo = Regex.Replace(telefone ?? string.Empty, @"\D", "");
         var textoLimpo = (textoMensagem ?? string.Empty).Trim().ToLowerInvariant();
 
+        if (string.IsNullOrWhiteSpace(telefoneLimpo) || string.IsNullOrWhiteSpace(textoLimpo))
+            return false;
+
         // 2. Localizar orador
         var oradores = await _oradorRepository.ListarTodosAsync(null, false, cancellationToken);
         var orador = oradores.FirstOrDefault(o =>
@@ -147,63 +151,110 @@ public class WhatsAppNotificationService : IWhatsAppNotificationService
 
         if (orador == null)
         {
-            _logger.LogWarning("Webhook recebido de número desconhecido: {Telefone}", telefone);
+            // Remetente não é orador cadastrado: ignorar silenciosamente para não interferir nas conversas pessoais do admin
             return false;
         }
 
-        // 3. Localizar palestras pendentes do orador
+        // 3. Localizar palestras pendentes que possuam convite enviado aguardando resposta
         var hoje = DateTime.Today;
         var futuras = await _agendaRepository.ObterPorPeriodoAsync(hoje, hoje.AddMonths(6), null, cancellationToken);
-        var agendaPendente = futuras
-            .Where(a => a.OradorId == orador.Id && a.Status == StatusPalestra.Pendente)
+        var agendasPendentes = futuras
+            .Where(a => a.OradorId == orador.Id && a.Status == StatusPalestra.Pendente && a.DataConviteEnviado.HasValue)
             .OrderBy(a => a.DataHora)
-            .FirstOrDefault();
+            .ToList();
 
-        // Registrar no histórico a mensagem recebida
+        if (agendasPendentes.Count == 0)
+        {
+            // Orador não possui nenhum convite pendente aguardando resposta: desconsiderar silenciosamente
+            _logger.LogInformation("Mensagem de {Telefone} desconsiderada: nenhum convite pendente aguardando resposta.", telefone);
+            return false;
+        }
+
+        // Se o orador respondeu citando a mensagem de convite específica, associar diretamente
+        Agenda? agendaAlvo = null;
+        if (!string.IsNullOrWhiteSpace(quotedMessageId))
+        {
+            var historicoConvite = await _historicoRepository.ObterPorIdentificadorProvedorAsync(quotedMessageId, cancellationToken);
+            if (historicoConvite != null && historicoConvite.AgendaId.HasValue)
+            {
+                agendaAlvo = agendasPendentes.FirstOrDefault(a => a.Id == historicoConvite.AgendaId.Value);
+            }
+        }
+
+        agendaAlvo ??= agendasPendentes.First();
+
+        // 4. Analisar intenção estrita (somente respostas em específico para confirmação ou recusa)
+        bool isConfirmacao = IsRespostaConfirmacao(textoLimpo);
+        bool isRecusa = IsRespostaRecusa(textoLimpo);
+
+        // Se não for uma resposta em específico (ex: "bom dia", conversas comuns, outras dúvidas), desconsiderar silenciosamente!
+        if (!isConfirmacao && !isRecusa)
+        {
+            _logger.LogInformation("Mensagem '{Texto}' de {Telefone} desconsiderada: não corresponde a resposta de convite.", textoMensagem, telefone);
+            return false;
+        }
+
+        // Registrar no histórico a mensagem recebida de resposta válida
         var historicoRecebido = new MensagemHistorico(
             telefoneLimpo,
             DirecaoMensagem.Recebimento,
             TipoMensagem.Resposta,
             StatusMensagem.Processado,
             textoMensagem ?? string.Empty,
-            agendaPendente?.Id,
+            agendaAlvo.Id,
             messageId
         );
         await _historicoRepository.AdicionarAsync(historicoRecebido, cancellationToken);
 
-        if (agendaPendente == null)
+        if (isConfirmacao)
         {
-            await EnviarTextoAsync(orador.TelefoneWhatsapp,
-                $"Olá, irmão {orador.Nome}! Não localizamos nenhuma palestra pendente de resposta para seu número no momento.",
-                null, cancellationToken);
-            return true;
-        }
+            agendaAlvo.Confirmar();
+            await _agendaRepository.AtualizarAsync(agendaAlvo, cancellationToken);
 
-        // 4. Analisar intenção (1 = Confirmação, 2 = Recusa)
-        if (textoLimpo == "1" || textoLimpo.Contains("confirmar") || textoLimpo.Contains("confirmo") || textoLimpo == "sim")
-        {
-            agendaPendente.Confirmar();
-            await _agendaRepository.AtualizarAsync(agendaPendente, cancellationToken);
-
-            var confirmacaoMsg = $"Obrigado, irmão {orador.Nome}! Sua palestra para o dia {agendaPendente.DataHora:dd/MM/yyyy} na Congregação {agendaPendente.Congregacao?.Nome} foi *CONFIRMADA* com sucesso!";
-            await EnviarTextoAsync(orador.TelefoneWhatsapp, confirmacaoMsg, agendaPendente.Id, cancellationToken);
-            return true;
-        }
-        else if (textoLimpo == "2" || textoLimpo.Contains("recusar") || textoLimpo.Contains("recuso") || textoLimpo == "não" || textoLimpo == "nao")
-        {
-            agendaPendente.Recusar("Recusado pelo orador via WhatsApp");
-            await _agendaRepository.AtualizarAsync(agendaPendente, cancellationToken);
-
-            var recusaMsg = $"Compreendido, irmão {orador.Nome}. Registramos a recusa do convite para o dia {agendaPendente.DataHora:dd/MM/yyyy}. Agradecemos por nos avisar!";
-            await EnviarTextoAsync(orador.TelefoneWhatsapp, recusaMsg, agendaPendente.Id, cancellationToken);
+            var confirmacaoMsg = $"Obrigado, irmão {orador.Nome}! Sua palestra para o dia {agendaAlvo.DataHora:dd/MM/yyyy} na Congregação {agendaAlvo.Congregacao?.Nome} foi *CONFIRMADA* com sucesso!";
+            await EnviarTextoAsync(orador.TelefoneWhatsapp, confirmacaoMsg, agendaAlvo.Id, cancellationToken);
             return true;
         }
         else
         {
-            var ajudaMsg = "Mensagem não compreendida. Por favor, responda apenas:\n*1* para CONFIRMAR a palestra\n*2* para RECUSAR o convite";
-            await EnviarTextoAsync(orador.TelefoneWhatsapp, ajudaMsg, agendaPendente.Id, cancellationToken);
+            agendaAlvo.Recusar("Recusado pelo orador via WhatsApp");
+            await _agendaRepository.AtualizarAsync(agendaAlvo, cancellationToken);
+
+            var recusaMsg = $"Compreendido, irmão {orador.Nome}. Registramos a recusa do convite para o dia {agendaAlvo.DataHora:dd/MM/yyyy}. Agradecemos por nos avisar!";
+            await EnviarTextoAsync(orador.TelefoneWhatsapp, recusaMsg, agendaAlvo.Id, cancellationToken);
             return true;
         }
+    }
+
+    private static bool IsRespostaConfirmacao(string texto)
+    {
+        return texto == "1" ||
+               texto == "1." ||
+               texto == "1 -" ||
+               texto == "sim" ||
+               texto == "confirmar" ||
+               texto == "confirmo" ||
+               texto == "confirmado" ||
+               texto.StartsWith("1 ") ||
+               texto.StartsWith("1-") ||
+               texto == "ok, confirmo" ||
+               texto == "pode confirmar";
+    }
+
+    private static bool IsRespostaRecusa(string texto)
+    {
+        return texto == "2" ||
+               texto == "2." ||
+               texto == "2 -" ||
+               texto == "não" ||
+               texto == "nao" ||
+               texto == "recusar" ||
+               texto == "recuso" ||
+               texto == "recusado" ||
+               texto.StartsWith("2 ") ||
+               texto.StartsWith("2-") ||
+               texto == "não posso" ||
+               texto == "nao posso";
     }
 
     private static string FormatarTelefoneParaEnvio(string telefone)

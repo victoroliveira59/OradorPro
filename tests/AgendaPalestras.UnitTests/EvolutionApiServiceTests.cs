@@ -92,4 +92,16 @@ public class EvolutionApiServiceTests
         Assert.NotNull(resultado.MessageId);
         Assert.StartsWith("sim_", resultado.MessageId);
     }
+
+    [Fact]
+    public async Task ConfigurarWebhook_ModoSimulado_DeveRetornarTrue()
+    {
+        _mockConfigRepo.Setup(r => r.ObterValorAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((string?)null);
+
+        var service = new EvolutionApiService(new HttpClient(), _mockConfigRepo.Object, _config, _mockLogger.Object);
+        var resultado = await service.ConfigurarWebhookAsync("https://meu-dominio.com/api/webhooks/whatsapp");
+
+        Assert.True(resultado);
+    }
 }

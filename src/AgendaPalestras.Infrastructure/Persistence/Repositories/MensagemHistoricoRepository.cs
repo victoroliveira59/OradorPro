@@ -37,6 +37,16 @@ public class MensagemHistoricoRepository : IMensagemHistoricoRepository
             .AnyAsync(m => m.IdentificadorProvedor == identificadorProvedor, cancellationToken);
     }
 
+    public async Task<MensagemHistorico?> ObterPorIdentificadorProvedorAsync(string identificadorProvedor, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(identificadorProvedor))
+            return null;
+
+        return await _context.MensagensHistorico
+            .Include(m => m.Agenda)
+            .FirstOrDefaultAsync(m => m.IdentificadorProvedor == identificadorProvedor, cancellationToken);
+    }
+
     public async Task AdicionarAsync(MensagemHistorico mensagem, CancellationToken cancellationToken = default)
     {
         await _context.MensagensHistorico.AddAsync(mensagem, cancellationToken);

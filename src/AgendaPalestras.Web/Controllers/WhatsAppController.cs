@@ -23,24 +23,17 @@ public class WhatsAppController : Controller
     [HttpGet]
     public async Task<IActionResult> Index()
     {
+        // Limpa cookie de TempData para prevenir sobrecarga de cabeçalho HTTP
+        Response.Cookies.Delete(".AspNetCore.Mvc.CookieTempDataProvider");
+
         var config = await _evolutionApiService.ObterConfiguracaoAsync();
         var status = await _evolutionApiService.ObterStatusConexaoAsync();
-
-        EvolutionQrCodeDto? qrCode = null;
-        if (!status.Conectado && TempData["QrCodeBase64"] != null)
-        {
-            qrCode = new EvolutionQrCodeDto(
-                config.InstanceName,
-                TempData["QrCodeBase64"]?.ToString(),
-                TempData["PairingCode"]?.ToString()
-            );
-        }
 
         var vm = new WhatsAppConnectionViewModel
         {
             Configuracao = config,
             Status = status,
-            QrCode = qrCode
+            QrCode = null
         };
 
         return View(vm);
@@ -53,31 +46,47 @@ public class WhatsAppController : Controller
         return Json(status);
     }
 
+    [HttpGet]
+    public async Task<IActionResult> QrCode()
+    {
+        var qr = await _evolutionApiService.ObterOuGerarQrCodeAsync();
+        return Json(qr);
+    }
+
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Conectar()
     {
+        var config = await _evolutionApiService.ObterConfiguracaoAsync();
+        var status = await _evolutionApiService.ObterStatusConexaoAsync();
+        EvolutionQrCodeDto? qr = null;
+
         try
         {
-            var qr = await _evolutionApiService.ObterOuGerarQrCodeAsync();
-            if (!string.IsNullOrEmpty(qr.QrCodeBase64) || !string.IsNullOrEmpty(qr.PairingCode))
+            qr = await _evolutionApiService.ObterOuGerarQrCodeAsync();
+            if (string.IsNullOrEmpty(qr.QrCodeBase64) && string.IsNullOrEmpty(qr.PairingCode))
             {
-                TempData["QrCodeBase64"] = qr.QrCodeBase64;
-                TempData["PairingCode"] = qr.PairingCode;
-                TempData["Success"] = "QR Code gerado com sucesso! Aponte a câmera do seu WhatsApp para escanear.";
+                ViewBag.ErrorMessage = "Não foi possível obter o QR Code. Verifique se a Evolution API está em execução.";
             }
             else
             {
-                TempData["Error"] = "Não foi possível obter o QR Code. Verifique se a Evolution API está em execução e acessível.";
+                ViewBag.SuccessMessage = "QR Code gerado com sucesso! Aponte a câmera do seu WhatsApp para escanear.";
             }
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Erro ao conectar ao WhatsApp via Evolution API");
-            TempData["Error"] = $"Erro ao tentar conectar: {ex.Message}";
+            ViewBag.ErrorMessage = $"Erro ao tentar conectar: {ex.Message}";
         }
 
-        return RedirectToAction(nameof(Index));
+        var vm = new WhatsAppConnectionViewModel
+        {
+            Configuracao = config,
+            Status = status,
+            QrCode = qr
+        };
+
+        return View("Index", vm);
     }
 
     [HttpPost]
@@ -155,6 +164,37 @@ public class WhatsAppController : Controller
         {
             _logger.LogError(ex, "Erro ao testar envio pelo WhatsApp");
             TempData["Error"] = $"Exceção ao enviar teste: {ex.Message}";
+        }
+
+        return RedirectToAction(nameof(Index));
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> ConfigurarWebhook(string webhookUrl)
+    {
+        if (string.IsNullOrWhiteSpace(webhookUrl))
+        {
+            TempData["Error"] = "A URL do webhook é obrigatória.";
+            return RedirectToAction(nameof(Index));
+        }
+
+        try
+        {
+            var sucesso = await _evolutionApiService.ConfigurarWebhookAsync(webhookUrl.Trim());
+            if (sucesso)
+            {
+                TempData["Success"] = "Webhook configurado com sucesso na Evolution API! Agora as mensagens do orador serão direcionadas para cá.";
+            }
+            else
+            {
+                TempData["Error"] = "Falha ao configurar webhook na Evolution API. Verifique a URL e as credenciais.";
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Erro ao configurar webhook");
+            TempData["Error"] = $"Erro ao configurar webhook: {ex.Message}";
         }
 
         return RedirectToAction(nameof(Index));

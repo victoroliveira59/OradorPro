@@ -127,6 +127,7 @@ public class WhatsAppTests
         var orador = new Orador(cong.Id, "Paulo Silva", "11999998888");
         var discurso = new Discurso(1, "Tema 1");
         var agenda = new Agenda(cong.Id, orador.Id, discurso.Id, DateTime.UtcNow.AddDays(5));
+        agenda.MarcarConviteEnviado(DateTime.UtcNow);
 
         typeof(Agenda).GetProperty("Congregacao")?.SetValue(agenda, cong);
         typeof(Agenda).GetProperty("Orador")?.SetValue(agenda, orador);
@@ -156,6 +157,7 @@ public class WhatsAppTests
         var orador = new Orador(cong.Id, "Lucas Rocha", "11977778888");
         var discurso = new Discurso(2, "Tema 2");
         var agenda = new Agenda(cong.Id, orador.Id, discurso.Id, DateTime.UtcNow.AddDays(5));
+        agenda.MarcarConviteEnviado(DateTime.UtcNow);
 
         typeof(Agenda).GetProperty("Congregacao")?.SetValue(agenda, cong);
         typeof(Agenda).GetProperty("Orador")?.SetValue(agenda, orador);
@@ -176,5 +178,57 @@ public class WhatsAppTests
         Assert.True(processado);
         Assert.Equal(StatusPalestra.Recusado, agenda.Status);
         _mockAgendaRepo.Verify(r => r.AtualizarAsync(agenda, It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task ProcessarRespostaWebhook_MensagemComumNaoConvite_DeveIgnorarSilenciosamente()
+    {
+        var cong = new Congregacao("Congregacao C", "Cidade C", "SP", "Dom", "19h");
+        var orador = new Orador(cong.Id, "Marcos", "11966665555");
+        var discurso = new Discurso(3, "Tema 3");
+        var agenda = new Agenda(cong.Id, orador.Id, discurso.Id, DateTime.UtcNow.AddDays(5));
+        agenda.MarcarConviteEnviado(DateTime.UtcNow);
+
+        _mockHistoricoRepo.Setup(r => r.JaExisteIdentificadorProvedorAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false);
+
+        _mockOradorRepo.Setup(r => r.ListarTodosAsync(null, false, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<Orador> { orador });
+
+        _mockAgendaRepo.Setup(r => r.ObterPorPeriodoAsync(It.IsAny<DateTime>(), It.IsAny<DateTime>(), null, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<Agenda> { agenda });
+
+        var service = CriarService();
+
+        // Orador manda conversa comum não relacionada a confirmação
+        var processado = await service.ProcessarRespostaWebhookAsync("11966665555", "Bom dia irmão, tudo bem? Como vai a família?", "msg_comum_1");
+
+        Assert.False(processado);
+        Assert.Equal(StatusPalestra.Pendente, agenda.Status);
+        _mockAgendaRepo.Verify(r => r.AtualizarAsync(agenda, It.IsAny<CancellationToken>()), Times.Never);
+        _mockEvolutionApi.Verify(e => e.EnviarTextoAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task ProcessarRespostaWebhook_QuandoOradorNaoTemConvitePendente_DeveIgnorarSilenciosamente()
+    {
+        var cong = new Congregacao("Congregacao D", "Cidade D", "SP", "Dom", "19h");
+        var orador = new Orador(cong.Id, "Joao", "11955554444");
+
+        _mockHistoricoRepo.Setup(r => r.JaExisteIdentificadorProvedorAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false);
+
+        _mockOradorRepo.Setup(r => r.ListarTodosAsync(null, false, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<Orador> { orador });
+
+        _mockAgendaRepo.Setup(r => r.ObterPorPeriodoAsync(It.IsAny<DateTime>(), It.IsAny<DateTime>(), null, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<Agenda>());
+
+        var service = CriarService();
+
+        var processado = await service.ProcessarRespostaWebhookAsync("11955554444", "1", "msg_sem_convite");
+
+        Assert.False(processado);
+        _mockAgendaRepo.Verify(r => r.AtualizarAsync(It.IsAny<Agenda>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 }

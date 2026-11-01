@@ -288,6 +288,54 @@ public class EvolutionApiService : IEvolutionApiService
         }
     }
 
+    public async Task<bool> ConfigurarWebhookAsync(string webhookUrl, CancellationToken cancellationToken = default)
+    {
+        var config = await ObterConfiguracaoAsync(cancellationToken);
+
+        if (IsModoSimulado(config.ApiUrl))
+        {
+            _logger.LogInformation("[WHATSAPP SIMULADO] Webhook configurado para {Url}", webhookUrl);
+            return true;
+        }
+
+        try
+        {
+            var setUrl = $"{config.ApiUrl}/webhook/set/{config.InstanceName}";
+            var request = new HttpRequestMessage(HttpMethod.Post, setUrl);
+            request.Headers.Add("apikey", config.ApiKey);
+
+            var body = new
+            {
+                enabled = true,
+                url = webhookUrl,
+                webhookByEvents = false,
+                webhookBase64 = false,
+                events = new[]
+                {
+                    "MESSAGES_UPSERT"
+                }
+            };
+
+            request.Content = JsonContent.Create(body);
+
+            var response = await _httpClient.SendAsync(request, cancellationToken);
+            if (response.IsSuccessStatusCode)
+            {
+                _logger.LogInformation("Webhook configurado com sucesso na Evolution API para instância {Instance}: {Url}", config.InstanceName, webhookUrl);
+                return true;
+            }
+
+            var erroCorpo = await response.Content.ReadAsStringAsync(cancellationToken);
+            _logger.LogError("Falha ao configurar webhook na Evolution API ({StatusCode}): {Erro}", response.StatusCode, erroCorpo);
+            return false;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Exceção ao configurar webhook na Evolution API para {Url}", webhookUrl);
+            return false;
+        }
+    }
+
     private static bool IsModoSimulado(string? apiUrl)
     {
         return string.IsNullOrWhiteSpace(apiUrl) ||

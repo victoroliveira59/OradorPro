@@ -10,4 +10,5 @@ public interface IEvolutionApiService
     Task<EvolutionQrCodeDto> ObterOuGerarQrCodeAsync(CancellationToken cancellationToken = default);
     Task<bool> DesconectarAsync(CancellationToken cancellationToken = default);
     Task<ResultadoEnvioMensagem> EnviarTextoAsync(string telefone, string mensagem, CancellationToken cancellationToken = default);
+    Task<bool> ConfigurarWebhookAsync(string webhookUrl, CancellationToken cancellationToken = default);
 }
