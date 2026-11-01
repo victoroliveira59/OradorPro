@@ -22,6 +22,8 @@ public class WhatsAppTests
     {
         _mockEvolutionApi.Setup(e => e.EnviarTextoAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new ResultadoEnvioMensagem(true, "sim_test_123"));
+        _mockEvolutionApi.Setup(e => e.EnviarTextoAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ResultadoEnvioMensagem(true, "sim_test_123"));
     }
 
     private WhatsAppNotificationService CriarService() =>

@@ -13,6 +13,7 @@ public class EvolutionApiService : IEvolutionApiService
 {
     private readonly HttpClient _httpClient;
     private readonly IConfiguracaoSistemaRepository _configRepository;
+    private readonly IUsuarioRepository _usuarioRepository;
     private readonly IConfiguration _configuration;
     private readonly ILogger<EvolutionApiService> _logger;
 
@@ -23,11 +24,13 @@ public class EvolutionApiService : IEvolutionApiService
     public EvolutionApiService(
         HttpClient httpClient,
         IConfiguracaoSistemaRepository configRepository,
+        IUsuarioRepository usuarioRepository,
         IConfiguration configuration,
         ILogger<EvolutionApiService> logger)
     {
         _httpClient = httpClient;
         _configRepository = configRepository;
+        _usuarioRepository = usuarioRepository;
         _configuration = configuration;
         _logger = logger;
     }
@@ -45,6 +48,21 @@ public class EvolutionApiService : IEvolutionApiService
         return new ConfiguracaoWhatsAppDto(apiUrl.TrimEnd('/'), apiKey.Trim(), instance.Trim());
     }
 
+    public async Task<ConfiguracaoWhatsAppDto?> ObterConfiguracaoPorUsuarioAsync(Guid usuarioId, CancellationToken cancellationToken = default)
+    {
+        var usuario = await _usuarioRepository.ObterPorIdAsync(usuarioId, cancellationToken);
+        if (usuario == null || string.IsNullOrWhiteSpace(usuario.EvolutionInstanceName))
+        {
+            return null;
+        }
+
+        var global = await ObterConfiguracaoAsync(cancellationToken);
+        var apiUrl = !string.IsNullOrWhiteSpace(usuario.EvolutionApiUrl) ? usuario.EvolutionApiUrl.TrimEnd('/') : global.ApiUrl;
+        var apiKey = !string.IsNullOrWhiteSpace(usuario.EvolutionApiKey) ? usuario.EvolutionApiKey.Trim() : global.ApiKey;
+
+        return new ConfiguracaoWhatsAppDto(apiUrl, apiKey, usuario.EvolutionInstanceName.Trim());
+    }
+
     public async Task SalvarConfiguracaoAsync(ConfiguracaoWhatsAppDto dto, CancellationToken cancellationToken = default)
     {
         await _configRepository.SalvarValorAsync(ChaveApiUrl, dto.ApiUrl.TrimEnd('/'), cancellationToken);
@@ -52,9 +70,88 @@ public class EvolutionApiService : IEvolutionApiService
         await _configRepository.SalvarValorAsync(ChaveInstanceName, dto.InstanceName.Trim(), cancellationToken);
     }
 
-    public async Task<EvolutionConnectionStatusDto> ObterStatusConexaoAsync(CancellationToken cancellationToken = default)
+    public async Task SalvarConfiguracaoUsuarioAsync(SalvarInstanciaUsuarioDto dto, CancellationToken cancellationToken = default)
     {
-        var config = await ObterConfiguracaoAsync(cancellationToken);
+        var usuario = await _usuarioRepository.ObterPorIdAsync(dto.UsuarioId, cancellationToken);
+        if (usuario == null)
+        {
+            throw new InvalidOperationException($"Usuário com ID '{dto.UsuarioId}' não encontrado.");
+        }
+
+        usuario.ConfigurarEvolution(dto.InstanceName, dto.ApiUrl, dto.ApiKey);
+        await _usuarioRepository.AtualizarAsync(usuario, cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<UsuarioWhatsAppInstanciaDto>> ListarUsuariosInstanciasAsync(CancellationToken cancellationToken = default)
+    {
+        var usuarios = await _usuarioRepository.ListarTodosAsync(cancellationToken);
+        return usuarios.Select(u => new UsuarioWhatsAppInstanciaDto(
+            u.Id,
+            u.Nome,
+            u.Email,
+            u.Papel,
+            u.CongregacaoId,
+            u.Congregacao?.Nome,
+            u.EvolutionInstanceName,
+            u.TemWhatsAppConfigurado,
+            u.EvolutionApiUrl,
+            u.EvolutionApiKey
+        )).ToList();
+    }
+
+    public async Task<bool> CriarInstanciaAsync(string instanceName, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(instanceName)) return false;
+
+        var config = await ObterConfiguracaoParaInstanciaAsync(instanceName, cancellationToken);
+
+        if (IsModoSimulado(config.ApiUrl))
+        {
+            _logger.LogInformation("[WHATSAPP SIMULADO] Instância {Instance} criada com sucesso.", instanceName);
+            return true;
+        }
+
+        try
+        {
+            var createUrl = $"{config.ApiUrl}/instance/create";
+            var createReq = new HttpRequestMessage(HttpMethod.Post, createUrl);
+            createReq.Headers.Add("apikey", config.ApiKey);
+            createReq.Content = JsonContent.Create(new
+            {
+                instanceName = instanceName.Trim(),
+                integration = "WHATSAPP-BAILEYS",
+                qrcode = true
+            });
+
+            var response = await _httpClient.SendAsync(createReq, cancellationToken);
+            if (response.IsSuccessStatusCode)
+            {
+                _logger.LogInformation("Instância {Instance} criada com sucesso na Evolution API.", instanceName);
+                return true;
+            }
+
+            var err = await response.Content.ReadAsStringAsync(cancellationToken);
+            _logger.LogWarning("Retorno ao criar instância {Instance} na Evolution API: {StatusCode} - {Error}", instanceName, response.StatusCode, err);
+
+            if (response.StatusCode == System.Net.HttpStatusCode.Conflict ||
+                err.Contains("already in use", StringComparison.OrdinalIgnoreCase) ||
+                err.Contains("already exists", StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+
+            return false;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Exceção ao criar instância {Instance} na Evolution API", instanceName);
+            return false;
+        }
+    }
+
+    public async Task<EvolutionConnectionStatusDto> ObterStatusConexaoAsync(string? instanceName = null, CancellationToken cancellationToken = default)
+    {
+        var config = await ObterConfiguracaoParaInstanciaAsync(instanceName, cancellationToken);
 
         if (IsModoSimulado(config.ApiUrl))
         {
@@ -109,13 +206,12 @@ public class EvolutionApiService : IEvolutionApiService
         }
     }
 
-    public async Task<EvolutionQrCodeDto> ObterOuGerarQrCodeAsync(CancellationToken cancellationToken = default)
+    public async Task<EvolutionQrCodeDto> ObterOuGerarQrCodeAsync(string? instanceName = null, CancellationToken cancellationToken = default)
     {
-        var config = await ObterConfiguracaoAsync(cancellationToken);
+        var config = await ObterConfiguracaoParaInstanciaAsync(instanceName, cancellationToken);
 
         if (IsModoSimulado(config.ApiUrl))
         {
-            // Retorna um QR code simulado transparente para testes em dev
             return new EvolutionQrCodeDto(
                 config.InstanceName,
                 "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
@@ -135,22 +231,7 @@ public class EvolutionApiService : IEvolutionApiService
             if (statusResp.StatusCode == System.Net.HttpStatusCode.NotFound)
             {
                 // Cria a instância via POST /instance/create
-                var createUrl = $"{config.ApiUrl}/instance/create";
-                var createReq = new HttpRequestMessage(HttpMethod.Post, createUrl);
-                createReq.Headers.Add("apikey", config.ApiKey);
-                createReq.Content = JsonContent.Create(new
-                {
-                    instanceName = config.InstanceName,
-                    integration = "WHATSAPP-BAILEYS",
-                    qrcode = true
-                });
-
-                var createResp = await _httpClient.SendAsync(createReq, cancellationToken);
-                if (!createResp.IsSuccessStatusCode)
-                {
-                    var err = await createResp.Content.ReadAsStringAsync(cancellationToken);
-                    _logger.LogError("Erro ao criar instância Evolution API: {Error}", err);
-                }
+                await CriarInstanciaAsync(config.InstanceName, cancellationToken);
             }
 
             // 2. Chama GET /instance/connect/{instance} para obter o QR Code
@@ -206,9 +287,9 @@ public class EvolutionApiService : IEvolutionApiService
         }
     }
 
-    public async Task<bool> DesconectarAsync(CancellationToken cancellationToken = default)
+    public async Task<bool> DesconectarAsync(string? instanceName = null, CancellationToken cancellationToken = default)
     {
-        var config = await ObterConfiguracaoAsync(cancellationToken);
+        var config = await ObterConfiguracaoParaInstanciaAsync(instanceName, cancellationToken);
 
         if (IsModoSimulado(config.ApiUrl))
         {
@@ -234,13 +315,18 @@ public class EvolutionApiService : IEvolutionApiService
 
     public async Task<ResultadoEnvioMensagem> EnviarTextoAsync(string telefone, string mensagem, CancellationToken cancellationToken = default)
     {
-        var config = await ObterConfiguracaoAsync(cancellationToken);
+        return await EnviarTextoAsync(telefone, mensagem, null, cancellationToken);
+    }
+
+    public async Task<ResultadoEnvioMensagem> EnviarTextoAsync(string telefone, string mensagem, string? instanceName, CancellationToken cancellationToken = default)
+    {
+        var config = await ObterConfiguracaoParaInstanciaAsync(instanceName, cancellationToken);
         var numeroFormatado = FormatarTelefone(telefone);
 
         if (IsModoSimulado(config.ApiUrl))
         {
             var fakeId = $"sim_{Guid.NewGuid():N}";
-            _logger.LogInformation("[WHATSAPP SIMULADO] Para: {Telefone} | Msg: {Mensagem}", numeroFormatado, mensagem);
+            _logger.LogInformation("[WHATSAPP SIMULADO] Instância: {Instance} | Para: {Telefone} | Msg: {Mensagem}", config.InstanceName, numeroFormatado, mensagem);
             return new ResultadoEnvioMensagem(true, fakeId);
         }
 
@@ -283,18 +369,18 @@ public class EvolutionApiService : IEvolutionApiService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Exceção ao disparar texto para {Telefone}", numeroFormatado);
+            _logger.LogError(ex, "Exceção ao disparar texto para {Telefone} na instância {Instance}", numeroFormatado, config.InstanceName);
             return new ResultadoEnvioMensagem(false, null, ex.Message);
         }
     }
 
-    public async Task<bool> ConfigurarWebhookAsync(string webhookUrl, CancellationToken cancellationToken = default)
+    public async Task<bool> ConfigurarWebhookAsync(string webhookUrl, string? instanceName = null, CancellationToken cancellationToken = default)
     {
-        var config = await ObterConfiguracaoAsync(cancellationToken);
+        var config = await ObterConfiguracaoParaInstanciaAsync(instanceName, cancellationToken);
 
         if (IsModoSimulado(config.ApiUrl))
         {
-            _logger.LogInformation("[WHATSAPP SIMULADO] Webhook configurado para {Url}", webhookUrl);
+            _logger.LogInformation("[WHATSAPP SIMULADO] Webhook configurado para {Url} na instância {Instance}", webhookUrl, config.InstanceName);
             return true;
         }
 
@@ -331,9 +417,30 @@ public class EvolutionApiService : IEvolutionApiService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Exceção ao configurar webhook na Evolution API para {Url}", webhookUrl);
+            _logger.LogError(ex, "Exceção ao configurar webhook na Evolution API para {Url} na instância {Instance}", webhookUrl, config.InstanceName);
             return false;
         }
+    }
+
+    private async Task<ConfiguracaoWhatsAppDto> ObterConfiguracaoParaInstanciaAsync(string? instanceName, CancellationToken cancellationToken = default)
+    {
+        var global = await ObterConfiguracaoAsync(cancellationToken);
+        if (string.IsNullOrWhiteSpace(instanceName))
+        {
+            return global;
+        }
+
+        var trimmedInstance = instanceName.Trim();
+        var usuarios = await _usuarioRepository.ListarTodosAsync(cancellationToken);
+        var usuario = usuarios?.FirstOrDefault(u => string.Equals(u.EvolutionInstanceName, trimmedInstance, StringComparison.OrdinalIgnoreCase));
+        if (usuario != null)
+        {
+            var apiUrl = !string.IsNullOrWhiteSpace(usuario.EvolutionApiUrl) ? usuario.EvolutionApiUrl.TrimEnd('/') : global.ApiUrl;
+            var apiKey = !string.IsNullOrWhiteSpace(usuario.EvolutionApiKey) ? usuario.EvolutionApiKey.Trim() : global.ApiKey;
+            return new ConfiguracaoWhatsAppDto(apiUrl, apiKey, trimmedInstance);
+        }
+
+        return new ConfiguracaoWhatsAppDto(global.ApiUrl, global.ApiKey, trimmedInstance);
     }
 
     private static bool IsModoSimulado(string? apiUrl)

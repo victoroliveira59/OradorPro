@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using AgendaPalestras.Application.DTOs;
 using AgendaPalestras.Application.Services;
 using AgendaPalestras.Web.Models;
@@ -26,44 +27,110 @@ public class WhatsAppController : Controller
         // Limpa cookie de TempData para prevenir sobrecarga de cabeçalho HTTP
         Response.Cookies.Delete(".AspNetCore.Mvc.CookieTempDataProvider");
 
-        var config = await _evolutionApiService.ObterConfiguracaoAsync();
-        var status = await _evolutionApiService.ObterStatusConexaoAsync();
+        var isSuperAdmin = User.IsInRole("SuperAdmin");
+        var usuarioId = ObterUsuarioLogadoId();
 
-        var vm = new WhatsAppConnectionViewModel
+        var globalConfig = await _evolutionApiService.ObterConfiguracaoAsync();
+        ConfiguracaoWhatsAppDto? userConfig = null;
+
+        if (usuarioId.HasValue)
         {
-            Configuracao = config,
-            Status = status,
-            QrCode = null
+            userConfig = await _evolutionApiService.ObterConfiguracaoPorUsuarioAsync(usuarioId.Value);
+        }
+
+        if (!isSuperAdmin)
+        {
+            if (userConfig == null || string.IsNullOrWhiteSpace(userConfig.InstanceName))
+            {
+                var vmNaoConfigurado = new WhatsAppConnectionViewModel
+                {
+                    Configuracao = new ConfiguracaoWhatsAppDto("", "", ""),
+                    Status = new EvolutionConnectionStatusDto("", "unconfigured", false),
+                    IsSuperAdmin = false,
+                    InstanciaNaoConfigurada = true
+                };
+                return View(vmNaoConfigurado);
+            }
+
+            var statusUser = await _evolutionApiService.ObterStatusConexaoAsync(userConfig.InstanceName);
+            var vmUser = new WhatsAppConnectionViewModel
+            {
+                Configuracao = userConfig,
+                Status = statusUser,
+                IsSuperAdmin = false,
+                InstanciaNaoConfigurada = false
+            };
+            return View(vmUser);
+        }
+
+        // SuperAdmin
+        var configEfetiva = userConfig ?? globalConfig;
+        var statusSuper = await _evolutionApiService.ObterStatusConexaoAsync(configEfetiva.InstanceName);
+        var usuariosInstancias = await _evolutionApiService.ListarUsuariosInstanciasAsync();
+
+        var vmSuper = new WhatsAppConnectionViewModel
+        {
+            Configuracao = configEfetiva,
+            Status = statusSuper,
+            IsSuperAdmin = true,
+            InstanciaNaoConfigurada = false,
+            UsuariosInstancias = usuariosInstancias
         };
 
-        return View(vm);
+        return View(vmSuper);
     }
 
     [HttpGet]
-    public async Task<IActionResult> Status()
+    public async Task<IActionResult> Status(string? instanceName = null)
     {
-        var status = await _evolutionApiService.ObterStatusConexaoAsync();
+        var instancia = await ResolverInstanciaAtivaAsync(instanceName);
+        if (string.IsNullOrWhiteSpace(instancia))
+        {
+            return Json(new EvolutionConnectionStatusDto("", "unconfigured", false));
+        }
+
+        var status = await _evolutionApiService.ObterStatusConexaoAsync(instancia);
         return Json(status);
     }
 
     [HttpGet]
-    public async Task<IActionResult> QrCode()
+    public async Task<IActionResult> QrCode(string? instanceName = null)
     {
-        var qr = await _evolutionApiService.ObterOuGerarQrCodeAsync();
+        var instancia = await ResolverInstanciaAtivaAsync(instanceName);
+        if (string.IsNullOrWhiteSpace(instancia))
+        {
+            return Json(new EvolutionQrCodeDto("", null, null, 0));
+        }
+
+        var qr = await _evolutionApiService.ObterOuGerarQrCodeAsync(instancia);
         return Json(qr);
     }
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Conectar()
+    public async Task<IActionResult> Conectar(string? instanceName = null)
     {
-        var config = await _evolutionApiService.ObterConfiguracaoAsync();
-        var status = await _evolutionApiService.ObterStatusConexaoAsync();
-        EvolutionQrCodeDto? qr = null;
+        var isSuperAdmin = User.IsInRole("SuperAdmin");
+        var usuarioId = ObterUsuarioLogadoId();
+        var instancia = await ResolverInstanciaAtivaAsync(instanceName);
 
+        if (string.IsNullOrWhiteSpace(instancia))
+        {
+            ViewBag.ErrorMessage = "Sua sessão do WhatsApp ainda não foi provisionada pelo Super Administrador.";
+            var vmVazio = new WhatsAppConnectionViewModel
+            {
+                Configuracao = new ConfiguracaoWhatsAppDto("", "", ""),
+                Status = new EvolutionConnectionStatusDto("", "unconfigured", false),
+                IsSuperAdmin = isSuperAdmin,
+                InstanciaNaoConfigurada = true
+            };
+            return View("Index", vmVazio);
+        }
+
+        EvolutionQrCodeDto? qr = null;
         try
         {
-            qr = await _evolutionApiService.ObterOuGerarQrCodeAsync();
+            qr = await _evolutionApiService.ObterOuGerarQrCodeAsync(instancia);
             if (string.IsNullOrEmpty(qr.QrCodeBase64) && string.IsNullOrEmpty(qr.PairingCode))
             {
                 ViewBag.ErrorMessage = "Não foi possível obter o QR Code. Verifique se a Evolution API está em execução.";
@@ -75,15 +142,21 @@ public class WhatsAppController : Controller
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Erro ao conectar ao WhatsApp via Evolution API");
+            _logger.LogError(ex, "Erro ao conectar ao WhatsApp via Evolution API para instância {Instancia}", instancia);
             ViewBag.ErrorMessage = $"Erro ao tentar conectar: {ex.Message}";
         }
 
+        var config = await _evolutionApiService.ObterConfiguracaoAsync();
+        var status = await _evolutionApiService.ObterStatusConexaoAsync(instancia);
+
         var vm = new WhatsAppConnectionViewModel
         {
-            Configuracao = config,
+            Configuracao = new ConfiguracaoWhatsAppDto(config.ApiUrl, config.ApiKey, instancia),
             Status = status,
-            QrCode = qr
+            QrCode = qr,
+            IsSuperAdmin = isSuperAdmin,
+            InstanciaNaoConfigurada = false,
+            UsuariosInstancias = isSuperAdmin ? await _evolutionApiService.ListarUsuariosInstanciasAsync() : Array.Empty<UsuarioWhatsAppInstanciaDto>()
         };
 
         return View("Index", vm);
@@ -91,14 +164,21 @@ public class WhatsAppController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Desconectar()
+    public async Task<IActionResult> Desconectar(string? instanceName = null)
     {
+        var instancia = await ResolverInstanciaAtivaAsync(instanceName);
+        if (string.IsNullOrWhiteSpace(instancia))
+        {
+            TempData["Error"] = "Nenhuma instância ativa identificada para desconexão.";
+            return RedirectToAction(nameof(Index));
+        }
+
         try
         {
-            var sucesso = await _evolutionApiService.DesconectarAsync();
+            var sucesso = await _evolutionApiService.DesconectarAsync(instancia);
             if (sucesso)
             {
-                TempData["Success"] = "Sessão do WhatsApp desconectada com sucesso.";
+                TempData["Success"] = $"Sessão do WhatsApp ({instancia}) desconectada com sucesso.";
             }
             else
             {
@@ -107,7 +187,7 @@ public class WhatsAppController : Controller
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Erro ao desconectar da Evolution API");
+            _logger.LogError(ex, "Erro ao desconectar instância {Instancia} da Evolution API", instancia);
             TempData["Error"] = $"Erro ao desconectar: {ex.Message}";
         }
 
@@ -115,6 +195,7 @@ public class WhatsAppController : Controller
     }
 
     [HttpPost]
+    [Authorize(Roles = "SuperAdmin")]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> SalvarConfiguracao(ConfiguracaoWhatsAppDto dto)
     {
@@ -127,12 +208,69 @@ public class WhatsAppController : Controller
         try
         {
             await _evolutionApiService.SalvarConfiguracaoAsync(dto);
-            TempData["Success"] = "Configurações da Evolution API salvas com sucesso!";
+            TempData["Success"] = "Configurações globais da Evolution API salvas com sucesso!";
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Erro ao salvar configurações da Evolution API");
             TempData["Error"] = $"Erro ao salvar configurações: {ex.Message}";
+        }
+
+        return RedirectToAction(nameof(Index));
+    }
+
+    [HttpPost]
+    [Authorize(Roles = "SuperAdmin")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> SalvarInstanciaUsuario(SalvarInstanciaUsuarioDto dto)
+    {
+        if (dto.UsuarioId == Guid.Empty)
+        {
+            TempData["Error"] = "Usuário inválido para vinculação de instância.";
+            return RedirectToAction(nameof(Index));
+        }
+
+        try
+        {
+            await _evolutionApiService.SalvarConfiguracaoUsuarioAsync(dto);
+            TempData["Success"] = "Instância do WhatsApp vinculada ao usuário com sucesso!";
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Erro ao salvar instância do usuário {UsuarioId}", dto.UsuarioId);
+            TempData["Error"] = $"Erro ao vincular instância: {ex.Message}";
+        }
+
+        return RedirectToAction(nameof(Index));
+    }
+
+    [HttpPost]
+    [Authorize(Roles = "SuperAdmin")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> CriarInstanciaEvolution(string instanceName)
+    {
+        if (string.IsNullOrWhiteSpace(instanceName))
+        {
+            TempData["Error"] = "Informe o nome da instância a ser criada.";
+            return RedirectToAction(nameof(Index));
+        }
+
+        try
+        {
+            var criada = await _evolutionApiService.CriarInstanciaAsync(instanceName.Trim());
+            if (criada)
+            {
+                TempData["Success"] = $"Instância '{instanceName.Trim()}' provisionada com sucesso na Evolution API!";
+            }
+            else
+            {
+                TempData["Error"] = $"Não foi possível provisionar a instância '{instanceName.Trim()}'. Verifique a URL e a ApiKey nas configurações.";
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Erro ao provisionar instância {Instancia} na Evolution API", instanceName);
+            TempData["Error"] = $"Exceção ao provisionar instância: {ex.Message}";
         }
 
         return RedirectToAction(nameof(Index));
@@ -148,12 +286,19 @@ public class WhatsAppController : Controller
             return RedirectToAction(nameof(Index));
         }
 
+        var instancia = await ResolverInstanciaAtivaAsync(dto.InstanceName);
+        if (string.IsNullOrWhiteSpace(instancia))
+        {
+            TempData["Error"] = "Sessão do WhatsApp não configurada para envio.";
+            return RedirectToAction(nameof(Index));
+        }
+
         try
         {
-            var resultado = await _evolutionApiService.EnviarTextoAsync(dto.Telefone, dto.Mensagem);
+            var resultado = await _evolutionApiService.EnviarTextoAsync(dto.Telefone, dto.Mensagem, instancia);
             if (resultado.Sucesso)
             {
-                TempData["Success"] = $"Mensagem de teste enviada com sucesso! (ID: {resultado.MessageId})";
+                TempData["Success"] = $"Mensagem de teste enviada com sucesso pela instância '{instancia}'! (ID: {resultado.MessageId})";
             }
             else
             {
@@ -170,8 +315,9 @@ public class WhatsAppController : Controller
     }
 
     [HttpPost]
+    [Authorize(Roles = "SuperAdmin")]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> ConfigurarWebhook(string webhookUrl)
+    public async Task<IActionResult> ConfigurarWebhook(string webhookUrl, string? instanceName = null)
     {
         if (string.IsNullOrWhiteSpace(webhookUrl))
         {
@@ -179,12 +325,14 @@ public class WhatsAppController : Controller
             return RedirectToAction(nameof(Index));
         }
 
+        var instancia = await ResolverInstanciaAtivaAsync(instanceName);
+
         try
         {
-            var sucesso = await _evolutionApiService.ConfigurarWebhookAsync(webhookUrl.Trim());
+            var sucesso = await _evolutionApiService.ConfigurarWebhookAsync(webhookUrl.Trim(), instancia);
             if (sucesso)
             {
-                TempData["Success"] = "Webhook configurado com sucesso na Evolution API! Agora as mensagens do orador serão direcionadas para cá.";
+                TempData["Success"] = $"Webhook configurado com sucesso na Evolution API para a instância '{instancia}'!";
             }
             else
             {
@@ -198,5 +346,41 @@ public class WhatsAppController : Controller
         }
 
         return RedirectToAction(nameof(Index));
+    }
+
+    private Guid? ObterUsuarioLogadoId()
+    {
+        var idClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (Guid.TryParse(idClaim, out var id))
+        {
+            return id;
+        }
+        return null;
+    }
+
+    private async Task<string?> ResolverInstanciaAtivaAsync(string? parametroInstancia = null)
+    {
+        if (User.IsInRole("SuperAdmin") && !string.IsNullOrWhiteSpace(parametroInstancia))
+        {
+            return parametroInstancia.Trim();
+        }
+
+        var usuarioId = ObterUsuarioLogadoId();
+        if (usuarioId.HasValue)
+        {
+            var userConfig = await _evolutionApiService.ObterConfiguracaoPorUsuarioAsync(usuarioId.Value);
+            if (userConfig != null && !string.IsNullOrWhiteSpace(userConfig.InstanceName))
+            {
+                return userConfig.InstanceName.Trim();
+            }
+        }
+
+        if (User.IsInRole("SuperAdmin"))
+        {
+            var global = await _evolutionApiService.ObterConfiguracaoAsync();
+            return global.InstanceName.Trim();
+        }
+
+        return null;
     }
 }

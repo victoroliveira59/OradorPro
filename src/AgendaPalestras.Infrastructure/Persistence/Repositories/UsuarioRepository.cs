@@ -33,6 +33,14 @@ public class UsuarioRepository : IUsuarioRepository
         return await _context.Usuarios.AnyAsync(u => (u.Papel == "Admin" || u.Papel == "SuperAdmin") && u.Ativo, cancellationToken);
     }
 
+    public async Task<IReadOnlyList<Usuario>> ListarTodosAsync(CancellationToken cancellationToken = default)
+    {
+        return await _context.Usuarios
+            .Include(u => u.Congregacao)
+            .OrderBy(u => u.Nome)
+            .ToListAsync(cancellationToken);
+    }
+
     public async Task AdicionarAsync(Usuario usuario, CancellationToken cancellationToken = default)
     {
         await _context.Usuarios.AddAsync(usuario, cancellationToken);

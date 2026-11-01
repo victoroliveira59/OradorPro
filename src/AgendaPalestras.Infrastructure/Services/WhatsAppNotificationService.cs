@@ -15,6 +15,7 @@ public class WhatsAppNotificationService : IWhatsAppNotificationService
     private readonly IOradorRepository _oradorRepository;
     private readonly IMensagemHistoricoRepository _historicoRepository;
     private readonly IEvolutionApiService _evolutionApiService;
+    private readonly IUsuarioRepository? _usuarioRepository;
     private readonly ILogger<WhatsAppNotificationService> _logger;
 
     public WhatsAppNotificationService(
@@ -22,13 +23,15 @@ public class WhatsAppNotificationService : IWhatsAppNotificationService
         IOradorRepository oradorRepository,
         IMensagemHistoricoRepository historicoRepository,
         IEvolutionApiService evolutionApiService,
-        ILogger<WhatsAppNotificationService> logger)
+        ILogger<WhatsAppNotificationService> logger,
+        IUsuarioRepository? usuarioRepository = null)
     {
         _agendaRepository = agendaRepository;
         _oradorRepository = oradorRepository;
         _historicoRepository = historicoRepository;
         _evolutionApiService = evolutionApiService;
         _logger = logger;
+        _usuarioRepository = usuarioRepository;
     }
 
     public async Task<ResultadoEnvioMensagem> EnviarConvitePalestraAsync(Guid agendaId, CancellationToken cancellationToken = default)
@@ -55,7 +58,7 @@ public class WhatsAppNotificationService : IWhatsAppNotificationService
 
         var resultado = await EnviarTextoAsync(agenda.Orador.TelefoneWhatsapp, texto, agenda.Id, cancellationToken);
 
-        if (resultado.Sucesso)
+        if (resultado?.Sucesso == true)
         {
             agenda.MarcarConviteEnviado(DateTime.UtcNow);
             await _agendaRepository.AtualizarAsync(agenda, cancellationToken);
@@ -104,7 +107,7 @@ public class WhatsAppNotificationService : IWhatsAppNotificationService
 
         var resultado = await EnviarTextoAsync(agenda.Orador.TelefoneWhatsapp, texto, agenda.Id, cancellationToken);
 
-        if (resultado.Sucesso)
+        if (resultado?.Sucesso == true)
         {
             agenda.MarcarLembreteEnviado(DateTime.UtcNow);
             await _agendaRepository.AtualizarAsync(agenda, cancellationToken);
@@ -130,7 +133,27 @@ public class WhatsAppNotificationService : IWhatsAppNotificationService
         Guid? agendaId = null,
         CancellationToken cancellationToken = default)
     {
-        return await _evolutionApiService.EnviarTextoAsync(telefone, mensagem, cancellationToken);
+        string? instanceName = null;
+        if (agendaId.HasValue && _usuarioRepository != null)
+        {
+            var agenda = await _agendaRepository.ObterPorIdAsync(agendaId.Value, cancellationToken);
+            if (agenda != null)
+            {
+                var usuarios = await _usuarioRepository.ListarTodosAsync(cancellationToken);
+                var usuario = usuarios?.FirstOrDefault(u => u.CongregacaoId == agenda.CongregacaoId && !string.IsNullOrWhiteSpace(u.EvolutionInstanceName));
+                if (usuario != null)
+                {
+                    instanceName = usuario.EvolutionInstanceName;
+                }
+            }
+        }
+
+        if (string.IsNullOrWhiteSpace(instanceName))
+        {
+            return await _evolutionApiService.EnviarTextoAsync(telefone, mensagem, cancellationToken);
+        }
+
+        return await _evolutionApiService.EnviarTextoAsync(telefone, mensagem, instanceName, cancellationToken);
     }
 
     public async Task<bool> ProcessarRespostaWebhookAsync(
