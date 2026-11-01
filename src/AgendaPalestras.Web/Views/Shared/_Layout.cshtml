@@ -37,10 +37,13 @@
                         <li class="nav-item">
                             <a class="nav-link" asp-area="" asp-controller="Discursos" asp-action="Index"><i class="bi bi-journal-text"></i> Discursos</a>
                         </li>
-                        @if (User.IsInRole("Admin"))
+                        @if (User.IsInRole("Admin") || User.IsInRole("SuperAdmin"))
                         {
                             <li class="nav-item">
                                 <a class="nav-link" asp-area="" asp-controller="WhatsApp" asp-action="Index"><i class="bi bi-whatsapp text-success"></i> WhatsApp</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" asp-area="" asp-controller="Convites" asp-action="Index"><i class="bi bi-link-45deg text-warning"></i> Convites de Cadastro</a>
                             </li>
                         }
                     </ul>

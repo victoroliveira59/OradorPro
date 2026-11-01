@@ -11,6 +11,7 @@ public class AuthService : IAuthService
 {
     private readonly IUsuarioRepository _usuarioRepository;
     private readonly ICongregacaoRepository _congregacaoRepository;
+    private readonly IConviteCadastroRepository _conviteRepository;
     private readonly IPasswordHasherService _passwordHasher;
     private readonly IConfiguration _configuration;
     private readonly ILogger<AuthService> _logger;
@@ -18,12 +19,14 @@ public class AuthService : IAuthService
     public AuthService(
         IUsuarioRepository usuarioRepository,
         ICongregacaoRepository congregacaoRepository,
+        IConviteCadastroRepository conviteRepository,
         IPasswordHasherService passwordHasher,
         IConfiguration configuration,
         ILogger<AuthService> logger)
     {
         _usuarioRepository = usuarioRepository;
         _congregacaoRepository = congregacaoRepository;
+        _conviteRepository = conviteRepository;
         _passwordHasher = passwordHasher;
         _configuration = configuration;
         _logger = logger;
@@ -70,6 +73,26 @@ public class AuthService : IAuthService
         if (string.IsNullOrWhiteSpace(dto.NomeCongregacao))
             throw new DomainException("O nome da congregação é obrigatório.");
 
+        ConviteCadastro? convite = null;
+        if (!string.IsNullOrWhiteSpace(dto.TokenConvite))
+        {
+            convite = await _conviteRepository.ObterPorCodigoAsync(dto.TokenConvite.Trim(), cancellationToken);
+            if (convite == null || !convite.EstaValido())
+            {
+                throw new DomainException("Link de convite inválido ou expirado.");
+            }
+
+            if (!string.IsNullOrWhiteSpace(convite.EmailConvidado) &&
+                !string.Equals(convite.EmailConvidado, dto.Email.Trim(), StringComparison.OrdinalIgnoreCase))
+            {
+                throw new DomainException($"Este link de convite é válido apenas para o e-mail '{convite.EmailConvidado}'.");
+            }
+        }
+        else
+        {
+            throw new DomainException("O cadastro é restrito. É necessário um link de convite válido gerado pelo Super Admin.");
+        }
+
         var usuarioExistente = await _usuarioRepository.ObterPorEmailAsync(dto.Email, cancellationToken);
         if (usuarioExistente != null)
             throw new DomainException($"Já existe um usuário cadastrado com o e-mail '{dto.Email}'.");
@@ -96,6 +119,12 @@ public class AuthService : IAuthService
         var hash = _passwordHasher.HashPassword(dto.Senha);
         var novoUsuario = new Usuario(dto.Nome, dto.Email, hash, "Admin", congregacao.Id);
         await _usuarioRepository.AdicionarAsync(novoUsuario, cancellationToken);
+
+        if (convite != null)
+        {
+            convite.MarcarComoUsado(novoUsuario.Id);
+            await _conviteRepository.AtualizarAsync(convite, cancellationToken);
+        }
 
         _logger.LogInformation("Novo usuário {Email} registrado com sucesso vinculado à congregação {Congregacao}.", novoUsuario.Email, congregacao.Nome);
 
@@ -135,7 +164,7 @@ public class AuthService : IAuthService
             }
 
             var hash = _passwordHasher.HashPassword(adminSenha);
-            var novoAdmin = new Usuario("Administrador Central", adminEmail, hash, "Admin", congregacaoPadrao.Id);
+            var novoAdmin = new Usuario("Administrador Central", adminEmail, hash, "SuperAdmin", congregacaoPadrao.Id);
 
             await _usuarioRepository.AdicionarAsync(novoAdmin, cancellationToken);
             _logger.LogInformation("Usuário Admin inicial provisionado com sucesso ({Email}) para congregação {Congregacao}.", adminEmail, congregacaoPadrao.Nome);

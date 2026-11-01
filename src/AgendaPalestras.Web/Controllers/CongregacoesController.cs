@@ -26,27 +26,12 @@ public class CongregacoesController : Controller
 
     public async Task<IActionResult> Index()
     {
-        var userCongId = ObterCongregacaoIdUsuarioLogado();
-        if (userCongId.HasValue)
-        {
-            var minhaCong = await _service.ObterPorIdAsync(userCongId.Value);
-            var lista = minhaCong != null ? new List<CongregacaoDto> { minhaCong } : new List<CongregacaoDto>();
-            return View(lista);
-        }
-
         var congregacoes = await _service.ListarTodasAsync();
         return View(congregacoes);
     }
 
     public IActionResult Create()
     {
-        var userCongId = ObterCongregacaoIdUsuarioLogado();
-        if (userCongId.HasValue)
-        {
-            TempData["Success"] = "Você já possui uma congregação vinculada ao seu usuário. Você pode editar os dados abaixo.";
-            return RedirectToAction(nameof(Edit), new { id = userCongId.Value });
-        }
-
         return View(new CriarCongregacaoDto("", "", "", "", ""));
     }
 

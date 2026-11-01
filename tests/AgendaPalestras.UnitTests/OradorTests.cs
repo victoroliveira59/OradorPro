@@ -1,5 +1,7 @@
 using AgendaPalestras.Domain.Entities;
 using AgendaPalestras.Domain.Exceptions;
+using AgendaPalestras.Domain.Interfaces;
+using Moq;
 using Xunit;
 
 namespace AgendaPalestras.UnitTests;
@@ -90,5 +92,46 @@ public class OradorTests
         Assert.False(orador.PossuiDiscurso(d1));
         Assert.True(orador.PossuiDiscurso(d2));
         Assert.True(orador.PossuiDiscurso(d3));
+    }
+
+    [Fact]
+    public async Task CriarAsync_ComNovaCongregacaoNome_DeveCriarCongregacaoEOrador()
+    {
+        var mockOradorRepo = new Moq.Mock<IOradorRepository>();
+        var mockCongRepo = new Moq.Mock<ICongregacaoRepository>();
+        var mockDiscursoRepo = new Moq.Mock<IDiscursoRepository>();
+        var validator = new AgendaPalestras.Application.Validators.CriarOradorValidator();
+
+        mockCongRepo.Setup(r => r.ListarTodasAsync(false, Moq.It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<Congregacao>());
+
+        var service = new AgendaPalestras.Application.Services.OradorService(
+            mockOradorRepo.Object,
+            mockCongRepo.Object,
+            mockDiscursoRepo.Object,
+            validator
+        );
+
+        var dto = new AgendaPalestras.Application.DTOs.CriarOradorDto(
+            Guid.Empty,
+            "Irmão Visitante",
+            "11988887777",
+            "visitante@email.com",
+            NovaCongregacaoNome: "Congregação Floresta"
+        );
+
+        var resultado = await service.CriarAsync(dto);
+
+        Assert.NotNull(resultado);
+        Assert.Equal("Irmão Visitante", resultado.Nome);
+        Assert.Equal("Congregação Floresta", resultado.CongregacaoNome);
+
+        mockCongRepo.Verify(r => r.AdicionarAsync(
+            Moq.It.Is<Congregacao>(c => c.Nome == "Congregação Floresta"),
+            Moq.It.IsAny<CancellationToken>()), Moq.Times.Once);
+
+        mockOradorRepo.Verify(r => r.AdicionarAsync(
+            Moq.It.Is<Orador>(o => o.Nome == "Irmão Visitante"),
+            Moq.It.IsAny<CancellationToken>()), Moq.Times.Once);
     }
 }

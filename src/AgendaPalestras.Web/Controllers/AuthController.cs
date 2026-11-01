@@ -11,10 +11,12 @@ namespace AgendaPalestras.Web.Controllers;
 public class AuthController : Controller
 {
     private readonly IAuthService _authService;
+    private readonly IConviteService _conviteService;
 
-    public AuthController(IAuthService authService)
+    public AuthController(IAuthService authService, IConviteService conviteService)
     {
         _authService = authService;
+        _conviteService = conviteService;
     }
 
     [HttpGet]
@@ -81,14 +83,31 @@ public class AuthController : Controller
 
     [HttpGet]
     [AllowAnonymous]
-    public IActionResult Register()
+    public async Task<IActionResult> Register(string? token)
     {
         if (User.Identity?.IsAuthenticated == true)
         {
             return RedirectToAction("Index", "Home");
         }
 
-        return View(new RegistrarUsuarioDto("", "", "", "", "", "", "", "", "", ""));
+        if (string.IsNullOrWhiteSpace(token))
+        {
+            ViewBag.ErroBloqueio = "A criação de conta é restrita. O Super Admin deve gerar um link de cadastro para você.";
+            return View("RegistroRestrito");
+        }
+
+        var tokenLimpo = token.Trim();
+        var valido = await _conviteService.ValidarConviteAsync(tokenLimpo);
+        if (!valido)
+        {
+            ViewBag.ErroBloqueio = "Este link de convite é inválido, já foi utilizado ou expirou. Solicite um novo link ao Super Admin.";
+            return View("RegistroRestrito");
+        }
+
+        var convite = await _conviteService.ObterPorCodigoAsync(tokenLimpo, $"{Request.Scheme}://{Request.Host}");
+        var emailConvidado = convite?.EmailConvidado ?? "";
+
+        return View(new RegistrarUsuarioDto("", emailConvidado, "", "", TokenConvite: tokenLimpo));
     }
 
     [HttpPost]
@@ -96,6 +115,19 @@ public class AuthController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Register(RegistrarUsuarioDto dto)
     {
+        if (string.IsNullOrWhiteSpace(dto.TokenConvite))
+        {
+            ViewBag.ErroBloqueio = "Token de convite ausente. O cadastro só pode ser realizado através de um link de convite válido.";
+            return View("RegistroRestrito");
+        }
+
+        var valido = await _conviteService.ValidarConviteAsync(dto.TokenConvite);
+        if (!valido)
+        {
+            ModelState.AddModelError(string.Empty, "Link de convite inválido, expirado ou já utilizado.");
+            return View(dto);
+        }
+
         if (string.IsNullOrWhiteSpace(dto.Nome) || string.IsNullOrWhiteSpace(dto.Email) || string.IsNullOrWhiteSpace(dto.Senha))
         {
             ModelState.AddModelError(string.Empty, "Nome, e-mail e senha são obrigatórios.");

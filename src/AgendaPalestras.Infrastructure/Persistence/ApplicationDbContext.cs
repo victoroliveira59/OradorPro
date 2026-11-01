@@ -17,6 +17,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<Agenda> Agendas => Set<Agenda>();
     public DbSet<MensagemHistorico> MensagensHistorico => Set<MensagemHistorico>();
     public DbSet<ConfiguracaoSistema> ConfiguracoesSistema => Set<ConfiguracaoSistema>();
+    public DbSet<ConviteCadastro> ConvitesCadastro => Set<ConviteCadastro>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

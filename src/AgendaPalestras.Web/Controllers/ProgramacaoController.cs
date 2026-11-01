@@ -35,10 +35,7 @@ public class ProgramacaoController : Controller
     public async Task<IActionResult> Index(int? ano, int? mes, Guid? congregacaoId)
     {
         var userCongId = ObterCongregacaoIdUsuarioLogado();
-        if (userCongId.HasValue)
-        {
-            congregacaoId = userCongId.Value;
-        }
+        congregacaoId = congregacaoId ?? userCongId;
 
         var dataReferencia = (ano.HasValue && mes.HasValue && mes.Value >= 1 && mes.Value <= 12)
             ? new DateTime(ano.Value, mes.Value, 1)
@@ -53,11 +50,9 @@ public class ProgramacaoController : Controller
         var inicioMesUtc = DateTime.SpecifyKind(primeiroDiaMes.Date, DateTimeKind.Utc);
         var fimMesUtc = DateTime.SpecifyKind(ultimoDiaMes.Date.AddDays(1).AddSeconds(-1), DateTimeKind.Utc);
 
-        var congregacoes = userCongId.HasValue
-            ? (await _congregacaoService.ObterPorIdAsync(userCongId.Value) is { } c ? new List<CongregacaoDto> { c } : new List<CongregacaoDto>())
-            : await _congregacaoService.ListarTodasAsync();
+        var congregacoes = await _congregacaoService.ListarTodasAsync();
 
-        if (!congregacaoId.HasValue && congregacoes.Count == 1)
+        if (!congregacaoId.HasValue && congregacoes.Count > 0)
         {
             congregacaoId = congregacoes[0].Id;
         }
@@ -133,16 +128,11 @@ public class ProgramacaoController : Controller
         var fimMesUtc = DateTime.SpecifyKind(ultimoDiaMes.Date.AddDays(1).AddSeconds(-1), DateTimeKind.Utc);
 
         var userCongId = ObterCongregacaoIdUsuarioLogado();
-        if (userCongId.HasValue)
-        {
-            congregacaoId = userCongId.Value;
-        }
+        congregacaoId = congregacaoId ?? userCongId;
 
-        var congregacoes = userCongId.HasValue
-            ? (await _congregacaoService.ObterPorIdAsync(userCongId.Value) is { } c ? new List<CongregacaoDto> { c } : new List<CongregacaoDto>())
-            : await _congregacaoService.ListarTodasAsync();
+        var congregacoes = await _congregacaoService.ListarTodasAsync();
 
-        if (!congregacaoId.HasValue && congregacoes.Count == 1)
+        if (!congregacaoId.HasValue && congregacoes.Count > 0)
         {
             congregacaoId = congregacoes[0].Id;
         }

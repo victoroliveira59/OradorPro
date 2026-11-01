@@ -15,6 +15,7 @@ public static class DependencyInjection
         services.AddScoped<IDiscursoService, DiscursoService>();
         services.AddScoped<IAgendaService, AgendaService>();
         services.AddScoped<IAuthService, AuthService>();
+        services.AddScoped<IConviteService, ConviteService>();
 
         return services;
     }
