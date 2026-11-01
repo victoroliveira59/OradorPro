@@ -3,6 +3,7 @@
     ViewData["Title"] = "Programação de Reunião de Fim de Semana";
     var mesAnterior = new DateTime(Model.Ano, Model.Mes, 1).AddMonths(-1);
     var mesProximo = new DateTime(Model.Ano, Model.Mes, 1).AddMonths(1);
+    var culturaPtBr = new System.Globalization.CultureInfo("pt-BR");
 }
 
 <div class="px-1 px-sm-2">
@@ -16,7 +17,7 @@
                 Gerencie os detalhes da reunião semanal (Tema, Orador, Presidente, Leitor e Oração) e gere o PDF mensal.
             </p>
         </div>
-        <div class="d-flex flex-column flex-sm-row gap-2 w-100 w-md-auto">
+        <div class="d-flex flex-wrap gap-2">
             <a asp-action="ExportarPdf" 
                asp-route-ano="@Model.Ano" 
                asp-route-mes="@Model.Mes" 
@@ -42,10 +43,10 @@
     <!-- Barra de Filtros e Navegação Mensal -->
     <div class="card shadow-sm mb-4 border-0">
         <div class="card-body bg-light rounded p-3">
-            <form method="get" asp-action="Index" class="row g-3 align-items-center">
+            <form method="get" asp-action="Index" class="row g-3 align-items-end">
                 <div class="col-12 col-md-5">
                     <label class="form-label fw-bold small text-secondary">Congregação</label>
-                    <select name="congregacaoId" class="form-select" onchange="this.form.submit()">
+                    <select name="congregacaoId" class="form-select form-select-sm" onchange="this.form.submit()">
                         <option value="">-- Todas as Congregações --</option>
                         @foreach (var c in Model.Congregacoes)
                         {
@@ -54,23 +55,23 @@
                     </select>
                 </div>
 
-                <div class="col-12 col-md-7 d-flex justify-content-between justify-content-md-end align-items-end gap-2 pt-2 pt-md-0">
-                    <div class="btn-group shadow-sm w-100 w-sm-auto" role="group">
+                <div class="col-12 col-md-7 d-flex justify-content-start justify-content-md-end align-items-end pt-2 pt-md-0">
+                    <div class="btn-group shadow-sm" role="group">
                         <a asp-action="Index" 
                            asp-route-ano="@mesAnterior.Year" 
                            asp-route-mes="@mesAnterior.Month" 
                            asp-route-congregacaoId="@Model.CongregacaoId" 
-                           class="btn btn-outline-primary btn-sm px-2 px-sm-3">
+                           class="btn btn-outline-primary btn-sm px-3">
                             <i class="bi bi-chevron-left"></i> <span class="d-none d-sm-inline">Anterior</span>
                         </a>
-                        <span class="btn btn-primary fw-bold px-2 px-sm-3 small text-nowrap">
+                        <span class="btn btn-primary btn-sm fw-bold px-3 text-nowrap">
                             <i class="bi bi-calendar-month me-1"></i> @Model.NomeMesAno
                         </span>
                         <a asp-action="Index" 
                            asp-route-ano="@mesProximo.Year" 
                            asp-route-mes="@mesProximo.Month" 
                            asp-route-congregacaoId="@Model.CongregacaoId" 
-                           class="btn btn-outline-primary btn-sm px-2 px-sm-3">
+                           class="btn btn-outline-primary btn-sm px-3">
                             <span class="d-none d-sm-inline">Próximo</span> <i class="bi bi-chevron-right"></i>
                         </a>
                     </div>
@@ -106,11 +107,13 @@
         }
         else
         {
-            <div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center mb-3 gap-2">
-                <span class="badge bg-secondary fs-6 py-2 px-3">
-                    <i class="bi bi-list-check me-1"></i> @Model.Reunioes.Count @(Model.Reunioes.Count == 1 ? "reunião encontrada" : "reuniões encontradas")
-                </span>
-                <button type="submit" class="btn btn-success shadow-sm w-100 w-sm-auto">
+            <div class="d-flex flex-column flex-sm-row justify-content-between align-items-stretch align-items-sm-center mb-3 gap-2">
+                <div>
+                    <span class="badge bg-secondary fs-6 py-2 px-3">
+                        <i class="bi bi-list-check me-1"></i> @Model.Reunioes.Count @(Model.Reunioes.Count == 1 ? "reunião encontrada" : "reuniões encontradas")
+                    </span>
+                </div>
+                <button type="submit" class="btn btn-success shadow-sm">
                     <i class="bi bi-check-lg me-1"></i> Salvar Todas as Designações
                 </button>
             </div>
@@ -119,6 +122,7 @@
                 @for (int i = 0; i < Model.Reunioes.Count; i++)
                 {
                     var item = Model.Reunioes[i];
+                    var nomeDiaSemana = culturaPtBr.TextInfo.ToTitleCase(item.DataHora.ToString("dddd", culturaPtBr));
                     <input type="hidden" name="Designacoes[@i].AgendaId" value="@item.AgendaId" />
 
                     <div class="col">
@@ -129,7 +133,7 @@
                                     <div class="col-12 col-lg-5">
                                         <div class="d-flex flex-wrap align-items-center gap-1 mb-2">
                                             <span class="badge bg-primary">
-                                                <i class="bi bi-calendar-event me-1"></i> @item.DataHora.ToString("dd/MM/yyyy (dddd)")
+                                                <i class="bi bi-calendar-event me-1"></i> @item.DataHora.ToString("dd/MM/yyyy") (@nomeDiaSemana)
                                             </span>
                                             <span class="badge bg-light text-dark border">
                                                 <i class="bi bi-clock me-1"></i> @item.DataHora.ToString("HH:mm")
@@ -172,7 +176,7 @@
                                                 <input type="text" 
                                                        name="Designacoes[@i].PresidenteReuniao" 
                                                        value="@item.PresidenteReuniao" 
-                                                       class="form-control" 
+                                                       class="form-control form-control-sm" 
                                                        placeholder="Nome do irmão" 
                                                        maxlength="150" />
                                             </div>
@@ -184,7 +188,7 @@
                                                 <input type="text" 
                                                        name="Designacoes[@i].LeitorSentinela" 
                                                        value="@item.LeitorSentinela" 
-                                                       class="form-control" 
+                                                       class="form-control form-control-sm" 
                                                        placeholder="Nome do leitor" 
                                                        maxlength="150" />
                                             </div>
@@ -196,7 +200,7 @@
                                                 <input type="text" 
                                                        name="Designacoes[@i].OracaoFinal" 
                                                        value="@item.OracaoFinal" 
-                                                       class="form-control" 
+                                                       class="form-control form-control-sm" 
                                                        placeholder="Nome ou observação" 
                                                        maxlength="250" />
                                             </div>
@@ -214,11 +218,11 @@
                    asp-route-ano="@Model.Ano" 
                    asp-route-mes="@Model.Mes" 
                    asp-route-congregacaoId="@Model.CongregacaoId" 
-                   class="btn btn-outline-danger w-100 w-sm-auto text-center"
+                   class="btn btn-outline-danger text-center"
                    target="_blank">
                     <i class="bi bi-file-earmark-pdf me-1"></i> Visualizar / Exportar PDF
                 </a>
-                <button type="submit" class="btn btn-success px-4 shadow-sm w-100 w-sm-auto">
+                <button type="submit" class="btn btn-success px-4 shadow-sm text-center">
                     <i class="bi bi-check-lg me-1"></i> Salvar Todas as Designações
                 </button>
             </div>
