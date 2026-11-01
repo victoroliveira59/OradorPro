@@ -35,8 +35,8 @@
                     </div>
                 }
 
-                <div class="row mb-4">
-                    <div class="col-md-6 border-end">
+                <div class="row mb-4 g-3">
+                    <div class="col-md-6 border-end-md">
                         <h5 class="text-primary"><i class="bi bi-building"></i> Congregação Hospedeira</h5>
                         <p class="mb-1"><strong>Nome:</strong> @Model.CongregacaoNome</p>
                         <p class="mb-1"><strong>Localidade:</strong> @Model.CongregacaoCidade (@Model.CongregacaoCircuito)</p>
@@ -59,8 +59,8 @@
 
                 <h5 class="text-primary mb-3"><i class="bi bi-clock-history"></i> Linha do Tempo e Automações WhatsApp</h5>
                 <ul class="list-group list-group-flush mb-4">
-                    <li class="list-group-item d-flex justify-content-between align-items-center">
-                        <span><i class="bi bi-send text-primary"></i> Convite WhatsApp:</span>
+                    <li class="list-group-item d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-1">
+                        <span><i class="bi bi-send text-primary me-1"></i> Convite WhatsApp:</span>
                         @if (Model.DataConviteEnviado.HasValue)
                         {
                             <span class="text-success"><i class="bi bi-check-circle-fill"></i> Enviado em @Model.DataConviteEnviado.Value.ToString("dd/MM/yyyy HH:mm")</span>
@@ -70,8 +70,8 @@
                             <span class="text-muted"><i class="bi bi-dash-circle"></i> Não enviado</span>
                         }
                     </li>
-                    <li class="list-group-item d-flex justify-content-between align-items-center">
-                        <span><i class="bi bi-chat-dots text-primary"></i> Resposta do Orador:</span>
+                    <li class="list-group-item d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-1">
+                        <span><i class="bi bi-chat-dots text-primary me-1"></i> Resposta do Orador:</span>
                         @if (Model.DataResposta.HasValue)
                         {
                             <span class="text-success"><i class="bi bi-check-circle-fill"></i> Recebida em @Model.DataResposta.Value.ToString("dd/MM/yyyy HH:mm")</span>
@@ -81,8 +81,8 @@
                             <span class="text-muted"><i class="bi bi-hourglass-split"></i> Aguardando resposta</span>
                         }
                     </li>
-                    <li class="list-group-item d-flex justify-content-between align-items-center">
-                        <span><i class="bi bi-bell text-primary"></i> Lembrete Preventivo (7 dias antes):</span>
+                    <li class="list-group-item d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-1">
+                        <span><i class="bi bi-bell text-primary me-1"></i> Lembrete Preventivo (7 dias antes):</span>
                         @if (Model.DataLembreteEnviado.HasValue)
                         {
                             <span class="text-success"><i class="bi bi-check-circle-fill"></i> Disparado em @Model.DataLembreteEnviado.Value.ToString("dd/MM/yyyy HH:mm")</span>
@@ -109,29 +109,29 @@
                     </div>
                 }
 
-                <div class="d-flex justify-content-between align-items-center border-top pt-3">
+                <div class="d-flex flex-column flex-md-row justify-content-between align-items-stretch align-items-md-center gap-2 border-top pt-3">
                     <a asp-action="Index" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> Voltar à Lista</a>
 
-                    <div>
+                    <div class="d-flex flex-column flex-sm-row flex-wrap gap-2 justify-content-sm-end">
                         @if (Model.Status == StatusPalestra.Pendente || Model.Status == StatusPalestra.Recusado)
                         {
-                            <form asp-action="ReenviarConvite" asp-route-id="@Model.Id" method="post" class="d-inline">
+                            <form asp-action="ReenviarConvite" asp-route-id="@Model.Id" method="post" class="d-grid d-sm-inline">
                                 @Html.AntiForgeryToken()
-                                <button type="submit" class="btn btn-outline-success me-2"><i class="bi bi-whatsapp"></i> Reenviar Convite</button>
+                                <button type="submit" class="btn btn-outline-success"><i class="bi bi-whatsapp"></i> Reenviar Convite</button>
                             </form>
 
-                            <form asp-action="Confirmar" asp-route-id="@Model.Id" method="post" class="d-inline">
+                            <form asp-action="Confirmar" asp-route-id="@Model.Id" method="post" class="d-grid d-sm-inline">
                                 @Html.AntiForgeryToken()
-                                <button type="submit" class="btn btn-success me-2"><i class="bi bi-check-lg"></i> Confirmar Manualmente</button>
+                                <button type="submit" class="btn btn-success"><i class="bi bi-check-lg"></i> Confirmar</button>
                             </form>
                         }
 
                         @if (Model.Status != StatusPalestra.Cancelado)
                         {
-                            <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-outline-secondary me-2"><i class="bi bi-pencil"></i> Reagendar</a>
+                            <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-outline-secondary"><i class="bi bi-pencil"></i> Reagendar</a>
 
                             <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#modalCancelar">
-                                <i class="bi bi-x-circle"></i> Cancelar Agendamento
+                                <i class="bi bi-x-circle"></i> Cancelar
                             </button>
                         }
                     </div>

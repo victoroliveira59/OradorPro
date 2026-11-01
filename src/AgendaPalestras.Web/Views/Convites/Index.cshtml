@@ -3,21 +3,19 @@
     ViewData["Title"] = "Gerenciar Links de Convite";
 }
 
-<div class="container-fluid px-3">
-    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-2">
+<div class="px-1 px-sm-2">
+    <div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center mb-4 gap-3">
         <div>
             <h2 class="h3 fw-bold mb-1 text-primary">
-                <i class="bi bi-link-45deg"></i> Links de Convite para Cadastro
+                <i class="bi bi-link-45deg"></i> Links de Convite
             </h2>
-            <p class="text-muted mb-0">
+            <p class="text-muted mb-0 small">
                 Gere links exclusivos para novos coordenadores cadastrarem suas congregações no sistema com segurança.
             </p>
         </div>
-        <div>
-            <button type="button" class="btn btn-primary shadow-sm" data-bs-toggle="modal" data-bs-target="#modalNovoConvite">
-                <i class="bi bi-plus-circle me-1"></i> Gerar Novo Link de Convite
-            </button>
-        </div>
+        <button type="button" class="btn btn-primary shadow-sm w-100 w-sm-auto" data-bs-toggle="modal" data-bs-target="#modalNovoConvite">
+            <i class="bi bi-plus-circle me-1"></i> Gerar Novo Link
+        </button>
     </div>
 
     @if (TempData["Success"] != null)
@@ -43,19 +41,21 @@
         var textoMsgWhatsapp = Uri.EscapeDataString($"Olá! Segue o link exclusivo para cadastrar sua congregação no OradorPro: {link}");
 
         <div class="card border-primary bg-primary bg-opacity-10 shadow-sm mb-4">
-            <div class="card-body">
+            <div class="card-body p-3">
                 <h5 class="fw-bold text-primary mb-2">
                     <i class="bi bi-send-check-fill me-1"></i> Link de Convite Gerado com Sucesso!
                 </h5>
                 <p class="mb-3 text-dark small">
                     Envie este link para o coordenador da congregação. @(emailAlvo != "Qualquer e-mail" ? $"Restrito ao e-mail: {emailAlvo}." : "Válido para cadastro único.")
                 </p>
-                <div class="input-group mb-3">
+                <div class="mb-2">
                     <input type="text" id="inputLinkGerado" class="form-control font-monospace bg-white" value="@link" readonly />
-                    <button class="btn btn-primary" type="button" onclick="copiarLink('@link')">
+                </div>
+                <div class="d-flex flex-column flex-sm-row gap-2">
+                    <button class="btn btn-primary flex-fill" type="button" onclick="copiarLink('@link')">
                         <i class="bi bi-clipboard me-1"></i> Copiar Link
                     </button>
-                    <a href="https://api.whatsapp.com/send?text=@textoMsgWhatsapp" target="_blank" class="btn btn-success">
+                    <a href="https://api.whatsapp.com/send?text=@textoMsgWhatsapp" target="_blank" class="btn btn-success flex-fill text-center">
                         <i class="bi bi-whatsapp me-1"></i> Enviar via WhatsApp
                     </a>
                 </div>
@@ -80,7 +80,8 @@
             }
             else
             {
-                <div class="table-responsive">
+                <!-- Tabela Desktop -->
+                <div class="table-responsive d-none d-md-block">
                     <table class="table table-hover align-middle mb-0">
                         <thead class="table-light">
                             <tr>
@@ -158,6 +159,64 @@
                             }
                         </tbody>
                     </table>
+                </div>
+
+                <!-- Cards Mobile -->
+                <div class="d-md-none p-3 d-flex flex-column gap-3">
+                    @foreach (var c in Model)
+                    {
+                        var textoWpp = Uri.EscapeDataString($"Olá! Segue o link para cadastrar sua congregação no OradorPro: {c.LinkCadastro}");
+                        var statusBorder = c.Usado ? "border-secondary" : (c.EstaExpirado ? "border-danger" : "border-success");
+
+                        <div class="card shadow-sm border-0 mobile-agenda-card border-start border-4 @statusBorder">
+                            <div class="card-body p-3">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    @if (c.Usado)
+                                    {
+                                        <span class="badge bg-secondary"><i class="bi bi-check2-all me-1"></i> Utilizado</span>
+                                    }
+                                    else if (c.EstaExpirado)
+                                    {
+                                        <span class="badge bg-danger"><i class="bi bi-x-circle me-1"></i> Expirado</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-success"><i class="bi bi-check-circle me-1"></i> Disponível</span>
+                                    }
+
+                                    <span class="small text-muted">Expira: @c.DataExpiracao.ToLocalTime().ToString("dd/MM HH:mm")</span>
+                                </div>
+
+                                <div class="mb-2">
+                                    <div class="small text-muted">Destinatário:</div>
+                                    <strong class="text-dark">@(string.IsNullOrWhiteSpace(c.EmailConvidado) ? "Qualquer e-mail" : c.EmailConvidado)</strong>
+                                </div>
+
+                                <div class="mb-3">
+                                    <code class="small text-break-word d-block bg-light p-2 rounded">@c.LinkCadastro</code>
+                                </div>
+
+                                <div class="d-flex gap-2 border-top pt-2">
+                                    <button type="button" class="btn btn-sm btn-outline-primary flex-fill" onclick="copiarLink('@c.LinkCadastro')">
+                                        <i class="bi bi-clipboard me-1"></i> Copiar
+                                    </button>
+                                    @if (!c.Usado && !c.EstaExpirado)
+                                    {
+                                        <a href="https://api.whatsapp.com/send?text=@textoWpp" target="_blank" class="btn btn-sm btn-success flex-fill text-center">
+                                            <i class="bi bi-whatsapp me-1"></i> WhatsApp
+                                        </a>
+                                        <form asp-action="Cancelar" method="post" class="d-inline" onsubmit="return confirm('Deseja realmente cancelar este link de convite?');">
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="id" value="@c.Id" />
+                                            <button type="submit" class="btn btn-sm btn-outline-danger">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </form>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    }
                 </div>
             }
         </div>
