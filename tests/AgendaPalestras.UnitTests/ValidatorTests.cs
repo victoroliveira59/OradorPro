@@ -31,6 +31,29 @@ public class ValidatorTests
     }
 
     [Fact]
+    public void CriarOradorValidator_ComNovaCongregacaoNome_DeveSerValido()
+    {
+        var validator = new CriarOradorValidator();
+        var dto = new CriarOradorDto(Guid.Empty, "Nome Orador", "11988887777", "", NovaCongregacaoNome: "Congregação Floresta");
+
+        var result = validator.Validate(dto);
+
+        Assert.True(result.IsValid);
+    }
+
+    [Fact]
+    public void CriarOradorValidator_SemCongregacaoIdENemNovaCongregacaoNome_DeveFalhar()
+    {
+        var validator = new CriarOradorValidator();
+        var dto = new CriarOradorDto(Guid.Empty, "Nome Orador", "11988887777", "");
+
+        var result = validator.Validate(dto);
+
+        Assert.False(result.IsValid);
+        Assert.Contains(result.Errors, e => e.PropertyName == "CongregacaoId");
+    }
+
+    [Fact]
     public void CriarDiscursoValidator_ComNumeroZero_DeveFalhar()
     {
         var validator = new CriarDiscursoValidator();

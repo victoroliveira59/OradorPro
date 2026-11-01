@@ -1,0 +1,216 @@
+@model IEnumerable<AgendaPalestras.Application.DTOs.ConviteCadastroDto>
+@{
+    ViewData["Title"] = "Gerenciar Links de Convite";
+}
+
+<div class="container-fluid px-3">
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-2">
+        <div>
+            <h2 class="h3 fw-bold mb-1 text-primary">
+                <i class="bi bi-link-45deg"></i> Links de Convite para Cadastro
+            </h2>
+            <p class="text-muted mb-0">
+                Gere links exclusivos para novos coordenadores cadastrarem suas congregações no sistema com segurança.
+            </p>
+        </div>
+        <div>
+            <button type="button" class="btn btn-primary shadow-sm" data-bs-toggle="modal" data-bs-target="#modalNovoConvite">
+                <i class="bi bi-plus-circle me-1"></i> Gerar Novo Link de Convite
+            </button>
+        </div>
+    </div>
+
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="bi bi-check-circle-fill me-2"></i> @TempData["Success"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i> @TempData["Error"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    @if (TempData["LinkGerado"] != null)
+    {
+        var link = TempData["LinkGerado"]!.ToString();
+        var emailAlvo = TempData["EmailConvidado"]?.ToString();
+        var textoMsgWhatsapp = Uri.EscapeDataString($"Olá! Segue o link exclusivo para cadastrar sua congregação no OradorPro: {link}");
+
+        <div class="card border-primary bg-primary bg-opacity-10 shadow-sm mb-4">
+            <div class="card-body">
+                <h5 class="fw-bold text-primary mb-2">
+                    <i class="bi bi-send-check-fill me-1"></i> Link de Convite Gerado com Sucesso!
+                </h5>
+                <p class="mb-3 text-dark small">
+                    Envie este link para o coordenador da congregação. @(emailAlvo != "Qualquer e-mail" ? $"Restrito ao e-mail: {emailAlvo}." : "Válido para cadastro único.")
+                </p>
+                <div class="input-group mb-3">
+                    <input type="text" id="inputLinkGerado" class="form-control font-monospace bg-white" value="@link" readonly />
+                    <button class="btn btn-primary" type="button" onclick="copiarLink('@link')">
+                        <i class="bi bi-clipboard me-1"></i> Copiar Link
+                    </button>
+                    <a href="https://api.whatsapp.com/send?text=@textoMsgWhatsapp" target="_blank" class="btn btn-success">
+                        <i class="bi bi-whatsapp me-1"></i> Enviar via WhatsApp
+                    </a>
+                </div>
+            </div>
+        </div>
+    }
+
+    <div class="card shadow-sm border-0">
+        <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
+            <h5 class="mb-0 fw-semibold text-secondary">
+                <i class="bi bi-clock-history me-1"></i> Histórico de Convites Emitidos
+            </h5>
+            <span class="badge bg-secondary">@Model.Count() convites</span>
+        </div>
+        <div class="card-body p-0">
+            @if (!Model.Any())
+            {
+                <div class="text-center py-5 text-muted">
+                    <i class="bi bi-inbox fs-1 d-block mb-2 text-secondary"></i>
+                    Nenhum link de convite gerado até o momento. Clique no botão acima para criar o primeiro link.
+                </div>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Status</th>
+                                <th>Link de Cadastro</th>
+                                <th>E-mail Alvo</th>
+                                <th>Criado Em</th>
+                                <th>Expira Em</th>
+                                <th>Emitido Por</th>
+                                <th class="text-end">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var c in Model)
+                            {
+                                var textoWpp = Uri.EscapeDataString($"Olá! Segue o link para cadastrar sua congregação no OradorPro: {c.LinkCadastro}");
+                                <tr>
+                                    <td>
+                                        @if (c.Usado)
+                                        {
+                                            <span class="badge bg-secondary"><i class="bi bi-check2-all me-1"></i> Utilizado</span>
+                                        }
+                                        else if (c.EstaExpirado)
+                                        {
+                                            <span class="badge bg-danger"><i class="bi bi-x-circle me-1"></i> Expirado</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-success"><i class="bi bi-check-circle me-1"></i> Disponível</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        <div class="d-flex align-items-center gap-2">
+                                            <code class="small text-truncate" style="max-width: 260px;" title="@c.LinkCadastro">@c.LinkCadastro</code>
+                                            <button type="button" class="btn btn-sm btn-outline-secondary p-1" title="Copiar Link" onclick="copiarLink('@c.LinkCadastro')">
+                                                <i class="bi bi-clipboard"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        @if (string.IsNullOrWhiteSpace(c.EmailConvidado))
+                                        {
+                                            <span class="text-muted fst-italic">Qualquer e-mail</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="fw-semibold">@c.EmailConvidado</span>
+                                        }
+                                    </td>
+                                    <td>@c.DataCriacao.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</td>
+                                    <td>@c.DataExpiracao.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</td>
+                                    <td><span class="small text-muted">@c.CriadoPorNome</span></td>
+                                    <td class="text-end">
+                                        @if (!c.Usado && !c.EstaExpirado)
+                                        {
+                                            <div class="btn-group btn-group-sm">
+                                                <a href="https://api.whatsapp.com/send?text=@textoWpp" target="_blank" class="btn btn-outline-success" title="Enviar no WhatsApp">
+                                                    <i class="bi bi-whatsapp"></i>
+                                                </a>
+                                                <form asp-action="Cancelar" method="post" class="d-inline" onsubmit="return confirm('Deseja realmente cancelar este link de convite?');">
+                                                    @Html.AntiForgeryToken()
+                                                    <input type="hidden" name="id" value="@c.Id" />
+                                                    <button type="submit" class="btn btn-outline-danger" title="Cancelar Convite">
+                                                        <i class="bi bi-trash"></i>
+                                                    </button>
+                                                </form>
+                                            </div>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted small">-</span>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+<!-- Modal Gerar Convite -->
+<div class="modal fade" id="modalNovoConvite" tabindex="-1" aria-labelledby="modalNovoConviteLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form asp-action="Gerar" method="post">
+                @Html.AntiForgeryToken()
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title" id="modalNovoConviteLabel">
+                        <i class="bi bi-link-45deg me-1"></i> Gerar Link de Convite
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">E-mail do Convidado (Opcional)</label>
+                        <input type="email" name="EmailConvidado" class="form-control" placeholder="exemplo@email.com" />
+                        <div class="form-text text-muted small">
+                            Se preenchido, apenas este e-mail poderá utilizar o link para criar a conta. Deixe em branco se quiser permitir qualquer e-mail.
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Validade do Link (Dias)</label>
+                        <input type="number" name="DiasValidade" class="form-control" value="7" min="1" max="60" required />
+                        <div class="form-text text-muted small">
+                            Após esse período, o link expirará automaticamente se não tiver sido utilizado.
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+                    <button type="submit" class="btn btn-primary fw-semibold">
+                        <i class="bi bi-check-lg me-1"></i> Gerar Link
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function copiarLink(texto) {
+            navigator.clipboard.writeText(texto).then(() => {
+                alert('Link copiado para a área de transferência com sucesso!');
+            }).catch(err => {
+                prompt('Copie o link abaixo manualmente:', texto);
+            });
+        }
+    </script>
+}

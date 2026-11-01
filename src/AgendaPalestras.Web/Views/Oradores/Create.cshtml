@@ -17,24 +17,23 @@
 
                     <div class="row">
                         <div class="col-md-6 mb-3">
-                            <label asp-for="CongregacaoId" class="form-label">Congregação de Origem *</label>
-                            @if (congregacoes.Count() == 1)
-                            {
-                                var c = congregacoes.First();
-                                <input type="hidden" asp-for="CongregacaoId" value="@c.Id" />
-                                <input class="form-control bg-light" value="@c.Nome (@c.Cidade)" readonly />
-                            }
-                            else
-                            {
-                                <select asp-for="CongregacaoId" class="form-select" required>
-                                    <option value="">-- Selecione a Congregação --</option>
-                                    @foreach (var c in congregacoes)
-                                    {
-                                        <option value="@c.Id">@c.Nome (@c.Cidade)</option>
-                                    }
-                                </select>
-                            }
-                            <span asp-validation-for="CongregacaoId" class="text-danger"></span>
+                            <label asp-for="CongregacaoId" class="form-label fw-semibold">Congregação de Origem *</label>
+                            <select asp-for="CongregacaoId" id="selectCongregacao" class="form-select mb-2">
+                                <option value="">-- Selecione a Congregação --</option>
+                                @foreach (var c in congregacoes)
+                                {
+                                    <option value="@c.Id" selected="@(c.Id == Model.CongregacaoId ? "selected" : null)">@c.Nome (@c.Cidade)</option>
+                                }
+                            </select>
+                            <div class="input-group">
+                                <span class="input-group-text small bg-light text-muted"><i class="bi bi-building-add me-1"></i> Ou nova:</span>
+                                <input asp-for="NovaCongregacaoNome" id="inputNovaCongregacao" class="form-control" placeholder="Digite o nome de outra congregação" />
+                            </div>
+                            <div class="form-text text-muted small">
+                                Selecione uma congregação ou digite o nome de outra para inserir sem precisar de cadastro prévio.
+                            </div>
+                            <span asp-validation-for="CongregacaoId" class="text-danger small"></span>
+                            <span asp-validation-for="NovaCongregacaoNome" class="text-danger small"></span>
                         </div>
                         <div class="col-md-6 mb-3">
                             <label asp-for="Nome" class="form-label">Nome Completo do Orador *</label>
@@ -86,3 +85,18 @@
         </div>
     </div>
 </div>
+
+@section Scripts {
+    <script>
+        const selCong = document.getElementById('selectCongregacao');
+        const inpNova = document.getElementById('inputNovaCongregacao');
+        if (selCong && inpNova) {
+            selCong.addEventListener('change', () => {
+                if (selCong.value) inpNova.value = '';
+            });
+            inpNova.addEventListener('input', () => {
+                if (inpNova.value.trim().length > 0) selCong.value = '';
+            });
+        }
+    </script>
+}

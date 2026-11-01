@@ -20,6 +20,7 @@ public record RegistrarUsuarioDto(
     string Email,
     string Senha,
     string NomeCongregacao,
+    string TokenConvite = "",
     string? Cidade = null,
     string? Circuito = null,
     string? Endereco = null,

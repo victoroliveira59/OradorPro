@@ -69,9 +69,7 @@ public class AgendaController : Controller
         var fimGradeUtc = DateTime.SpecifyKind(fimGrade.Date.AddDays(1).AddSeconds(-1), DateTimeKind.Utc);
 
         var agendas = await _agendaService.ObterPorPeriodoAsync(inicioGradeUtc, fimGradeUtc, filtroCongregacao);
-        var congregacoes = userCongId.HasValue
-            ? (await _congregacaoService.ObterPorIdAsync(userCongId.Value) is { } c ? new List<CongregacaoDto> { c } : new List<CongregacaoDto>())
-            : await _congregacaoService.ListarTodasAsync();
+        var congregacoes = await _congregacaoService.ListarTodasAsync();
 
         var diasGrade = new List<AgendaDiaCalendarioDto>();
         for (var d = inicioGrade.Date; d <= fimGrade.Date; d = d.AddDays(1))
@@ -115,7 +113,7 @@ public class AgendaController : Controller
     public async Task<IActionResult> Create(string? data, Guid? congregacaoId)
     {
         var userCongId = ObterCongregacaoIdUsuarioLogado();
-        var congIdFinal = userCongId ?? congregacaoId;
+        var congIdFinal = congregacaoId ?? userCongId;
 
         await CarregarCombosAsync(userCongId);
 
@@ -133,7 +131,7 @@ public class AgendaController : Controller
     public async Task<IActionResult> Create(CriarAgendaDto dto)
     {
         var userCongId = ObterCongregacaoIdUsuarioLogado();
-        if (userCongId.HasValue)
+        if (dto.CongregacaoId == Guid.Empty && userCongId.HasValue)
         {
             dto = dto with { CongregacaoId = userCongId.Value };
         }
@@ -291,16 +289,7 @@ public class AgendaController : Controller
 
     private async Task CarregarCombosAsync(Guid? userCongId = null)
     {
-        if (userCongId.HasValue)
-        {
-            var minhaCong = await _congregacaoService.ObterPorIdAsync(userCongId.Value);
-            ViewBag.Congregacoes = minhaCong != null ? new List<CongregacaoDto> { minhaCong } : new List<CongregacaoDto>();
-            ViewBag.Oradores = (await _oradorService.ListarTodosAsync(userCongId.Value)).Where(o => o.Ativo).ToList();
-        }
-        else
-        {
-            ViewBag.Congregacoes = await _congregacaoService.ListarTodasAsync();
-            ViewBag.Oradores = (await _oradorService.ListarTodosAsync()).Where(o => o.Ativo).ToList();
-        }
+        ViewBag.Congregacoes = await _congregacaoService.ListarTodasAsync();
+        ViewBag.Oradores = (await _oradorService.ListarTodosAsync()).Where(o => o.Ativo).ToList();
     }
 }

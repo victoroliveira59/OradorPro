@@ -169,6 +169,54 @@ namespace AgendaPalestras.Infrastructure.Migrations
                     b.ToTable("Congregacoes", (string)null);
                 });
 
+            modelBuilder.Entity("AgendaPalestras.Domain.Entities.ConviteCadastro", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("AtualizadoEm")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("Codigo")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<DateTime>("CriadoEm")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<Guid>("CriadoPorUsuarioId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("DataExpiracao")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<DateTime?>("DataUso")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("EmailConvidado")
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)");
+
+                    b.Property<bool>("Usado")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid?>("UsuarioCriadoId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Codigo")
+                        .IsUnique();
+
+                    b.HasIndex("CriadoPorUsuarioId");
+
+                    b.HasIndex("UsuarioCriadoId");
+
+                    b.ToTable("ConvitesCadastro", (string)null);
+                });
+
             modelBuilder.Entity("AgendaPalestras.Domain.Entities.Discurso", b =>
                 {
                     b.Property<Guid>("Id")
@@ -396,6 +444,24 @@ namespace AgendaPalestras.Infrastructure.Migrations
                     b.Navigation("Discurso");
 
                     b.Navigation("Orador");
+                });
+
+            modelBuilder.Entity("AgendaPalestras.Domain.Entities.ConviteCadastro", b =>
+                {
+                    b.HasOne("AgendaPalestras.Domain.Entities.Usuario", "CriadoPorUsuario")
+                        .WithMany()
+                        .HasForeignKey("CriadoPorUsuarioId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("AgendaPalestras.Domain.Entities.Usuario", "UsuarioCriado")
+                        .WithMany()
+                        .HasForeignKey("UsuarioCriadoId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("CriadoPorUsuario");
+
+                    b.Navigation("UsuarioCriado");
                 });
 
             modelBuilder.Entity("AgendaPalestras.Domain.Entities.MensagemHistorico", b =>

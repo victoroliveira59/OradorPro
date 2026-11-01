@@ -53,6 +53,7 @@ public static class DependencyInjection
         services.AddScoped<IAgendaRepository, AgendaRepository>();
         services.AddScoped<IMensagemHistoricoRepository, MensagemHistoricoRepository>();
         services.AddScoped<IConfiguracaoSistemaRepository, ConfiguracaoSistemaRepository>();
+        services.AddScoped<IConviteCadastroRepository, ConviteCadastroRepository>();
 
         services.AddSingleton<IPasswordHasherService, Services.PasswordHasherService>();
         services.AddSingleton<IProgramacaoPdfService, Services.ProgramacaoPdfService>();

@@ -17,6 +17,12 @@
 
                 <form asp-action="Register" method="post">
                     @Html.AntiForgeryToken()
+                    <input type="hidden" asp-for="TokenConvite" />
+
+                    <div class="alert alert-info py-2 px-3 small d-flex align-items-center mb-4">
+                        <i class="bi bi-shield-check fs-5 me-2 text-primary"></i>
+                        <span>Você está se cadastrando através de um convite autorizado pelo <strong>Super Admin</strong>.</span>
+                    </div>
 
                     <h5 class="fw-bold text-primary mb-3"><i class="bi bi-person-circle me-1"></i> Dados do Coordenador / Administrador</h5>
                     

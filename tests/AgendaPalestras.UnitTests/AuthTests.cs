@@ -15,6 +15,7 @@ public class AuthTests
     private readonly PasswordHasherService _hasher = new();
     private readonly Mock<IUsuarioRepository> _mockUsuarioRepo = new();
     private readonly Mock<ICongregacaoRepository> _mockCongregacaoRepo = new();
+    private readonly Mock<IConviteCadastroRepository> _mockConviteRepo = new();
     private readonly Mock<ILogger<AuthService>> _mockLogger = new();
     private readonly IConfiguration _config;
 
@@ -71,7 +72,7 @@ public class AuthTests
         _mockUsuarioRepo.Setup(r => r.ObterPorEmailAsync(email, It.IsAny<CancellationToken>()))
             .ReturnsAsync(usuario);
 
-        var service = new AuthService(_mockUsuarioRepo.Object, _mockCongregacaoRepo.Object, _hasher, _config, _mockLogger.Object);
+        var service = new AuthService(_mockUsuarioRepo.Object, _mockCongregacaoRepo.Object, _mockConviteRepo.Object, _hasher, _config, _mockLogger.Object);
 
         var dto = new LoginDto(email, senha);
         var autenticado = await service.AutenticarAsync(dto);
@@ -96,7 +97,7 @@ public class AuthTests
         _mockUsuarioRepo.Setup(r => r.ObterPorEmailAsync(email, It.IsAny<CancellationToken>()))
             .ReturnsAsync(usuario);
 
-        var service = new AuthService(_mockUsuarioRepo.Object, _mockCongregacaoRepo.Object, _hasher, _config, _mockLogger.Object);
+        var service = new AuthService(_mockUsuarioRepo.Object, _mockCongregacaoRepo.Object, _mockConviteRepo.Object, _hasher, _config, _mockLogger.Object);
 
         var dto = new LoginDto(email, senha);
         var autenticado = await service.AutenticarAsync(dto);
@@ -112,32 +113,37 @@ public class AuthTests
         _mockCongregacaoRepo.Setup(r => r.ListarTodasAsync(false, It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<Congregacao>());
 
-        var service = new AuthService(_mockUsuarioRepo.Object, _mockCongregacaoRepo.Object, _hasher, _config, _mockLogger.Object);
+        var service = new AuthService(_mockUsuarioRepo.Object, _mockCongregacaoRepo.Object, _mockConviteRepo.Object, _hasher, _config, _mockLogger.Object);
 
         await service.InicializarAdminPadraoAsync();
 
         _mockUsuarioRepo.Verify(r => r.AdicionarAsync(
-            It.Is<Usuario>(u => u.Email == "admin@agendapalestras.local" && u.Papel == "Admin"),
+            It.Is<Usuario>(u => u.Email == "admin@agendapalestras.local" && u.Papel == "SuperAdmin"),
             It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
-    public async Task RegistrarUsuarioAsync_ComDadosValidos_DeveCriarCongregacaoEUsuario()
+    public async Task RegistrarUsuarioAsync_ComConviteValido_DeveCriarCongregacaoEUsuarioEMarcarConviteUsado()
     {
         _mockUsuarioRepo.Setup(r => r.ObterPorEmailAsync("novo@teste.com", It.IsAny<CancellationToken>()))
             .ReturnsAsync((Usuario?)null);
 
-        var service = new AuthService(_mockUsuarioRepo.Object, _mockCongregacaoRepo.Object, _hasher, _config, _mockLogger.Object);
+        var convite = new ConviteCadastro(Guid.NewGuid(), "novo@teste.com", 7, "tokenValido123");
+        _mockConviteRepo.Setup(r => r.ObterPorCodigoAsync("tokenValido123", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(convite);
+
+        var service = new AuthService(_mockUsuarioRepo.Object, _mockCongregacaoRepo.Object, _mockConviteRepo.Object, _hasher, _config, _mockLogger.Object);
 
         var dto = new RegistrarUsuarioDto(
             "Novo Usuário",
             "novo@teste.com",
             "Senha@123",
             "Minha Congregação",
-            "Circuito 1",
-            "Cidade Central",
-            "Rua das Flores, 123",
-            "https://maps.app.goo.gl/exemplo"
+            TokenConvite: "tokenValido123",
+            Cidade: "Cidade Central",
+            Circuito: "Circuito 1",
+            Endereco: "Rua das Flores, 123",
+            LinkGoogleMaps: "https://maps.app.goo.gl/exemplo"
         );
 
         var autenticado = await service.RegistrarUsuarioAsync(dto);
@@ -146,6 +152,9 @@ public class AuthTests
         Assert.Equal("Novo Usuário", autenticado.Nome);
         Assert.Equal("novo@teste.com", autenticado.Email);
         Assert.Equal("Minha Congregação", autenticado.CongregacaoNome);
+        Assert.True(convite.Usado);
+
+        _mockConviteRepo.Verify(r => r.AtualizarAsync(convite, It.IsAny<CancellationToken>()), Times.Once);
 
         _mockCongregacaoRepo.Verify(r => r.AdicionarAsync(
             It.Is<Congregacao>(c => c.Nome == "Minha Congregação" && c.Endereco == "Rua das Flores, 123"),
@@ -154,5 +163,40 @@ public class AuthTests
         _mockUsuarioRepo.Verify(r => r.AdicionarAsync(
             It.Is<Usuario>(u => u.Email == "novo@teste.com" && u.Nome == "Novo Usuário"),
             It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task RegistrarUsuarioAsync_SemTokenConvite_DeveLancarExcecao()
+    {
+        var service = new AuthService(_mockUsuarioRepo.Object, _mockCongregacaoRepo.Object, _mockConviteRepo.Object, _hasher, _config, _mockLogger.Object);
+
+        var dto = new RegistrarUsuarioDto(
+            "Novo Usuário",
+            "novo@teste.com",
+            "Senha@123",
+            "Minha Congregação",
+            TokenConvite: ""
+        );
+
+        await Assert.ThrowsAsync<AgendaPalestras.Domain.Exceptions.DomainException>(() => service.RegistrarUsuarioAsync(dto));
+    }
+
+    [Fact]
+    public async Task RegistrarUsuarioAsync_ComTokenInvalido_DeveLancarExcecao()
+    {
+        _mockConviteRepo.Setup(r => r.ObterPorCodigoAsync("invalido", It.IsAny<CancellationToken>()))
+            .ReturnsAsync((ConviteCadastro?)null);
+
+        var service = new AuthService(_mockUsuarioRepo.Object, _mockCongregacaoRepo.Object, _mockConviteRepo.Object, _hasher, _config, _mockLogger.Object);
+
+        var dto = new RegistrarUsuarioDto(
+            "Novo Usuário",
+            "novo@teste.com",
+            "Senha@123",
+            "Minha Congregação",
+            TokenConvite: "invalido"
+        );
+
+        await Assert.ThrowsAsync<AgendaPalestras.Domain.Exceptions.DomainException>(() => service.RegistrarUsuarioAsync(dto));
     }
 }

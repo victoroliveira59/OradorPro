@@ -30,7 +30,7 @@ public class UsuarioRepository : IUsuarioRepository
 
     public async Task<bool> ExisteAdminAsync(CancellationToken cancellationToken = default)
     {
-        return await _context.Usuarios.AnyAsync(u => u.Papel == "Admin" && u.Ativo, cancellationToken);
+        return await _context.Usuarios.AnyAsync(u => (u.Papel == "Admin" || u.Papel == "SuperAdmin") && u.Ativo, cancellationToken);
     }
 
     public async Task AdicionarAsync(Usuario usuario, CancellationToken cancellationToken = default)
