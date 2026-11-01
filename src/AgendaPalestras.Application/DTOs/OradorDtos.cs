@@ -16,7 +16,8 @@ public record CriarOradorDto(
     string Nome,
     string TelefoneWhatsapp,
     string Email,
-    List<Guid>? DiscursosIniciaisIds = null
+    List<Guid>? DiscursosIniciaisIds = null,
+    string? NovaCongregacaoNome = null
 );
 
 public record AtualizarOradorDto(

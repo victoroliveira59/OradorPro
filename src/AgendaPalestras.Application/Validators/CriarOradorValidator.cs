@@ -8,7 +8,14 @@ public class CriarOradorValidator : AbstractValidator<CriarOradorDto>
     public CriarOradorValidator()
     {
         RuleFor(x => x.CongregacaoId)
-            .NotEmpty().WithMessage("A congregação de origem é obrigatória.");
+            .NotEmpty()
+            .When(x => string.IsNullOrWhiteSpace(x.NovaCongregacaoNome))
+            .WithMessage("A congregação de origem é obrigatória.");
+
+        RuleFor(x => x.NovaCongregacaoNome)
+            .NotEmpty()
+            .When(x => x.CongregacaoId == Guid.Empty)
+            .WithMessage("A congregação de origem é obrigatória.");
 
         RuleFor(x => x.Nome)
             .NotEmpty().WithMessage("Nome do orador é obrigatório.")

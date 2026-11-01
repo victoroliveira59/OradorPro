@@ -54,10 +54,35 @@ public class OradorService : IOradorService
         if (!validation.IsValid)
             throw new ValidationException(validation.Errors);
 
-        var congregacao = await _congregacaoRepository.ObterPorIdAsync(dto.CongregacaoId, cancellationToken)
-            ?? throw new DomainException("Congregação de origem não encontrada.");
+        Guid congregacaoIdFinal = dto.CongregacaoId;
+        string congregacaoNome;
 
-        var entity = new Orador(dto.CongregacaoId, dto.Nome, dto.TelefoneWhatsapp, dto.Email);
+        if (!string.IsNullOrWhiteSpace(dto.NovaCongregacaoNome))
+        {
+            var nomeLimpo = dto.NovaCongregacaoNome.Trim();
+            var todas = await _congregacaoRepository.ListarTodasAsync(false, cancellationToken);
+            var existente = todas.FirstOrDefault(c => string.Equals(c.Nome, nomeLimpo, StringComparison.OrdinalIgnoreCase));
+            if (existente != null)
+            {
+                congregacaoIdFinal = existente.Id;
+                congregacaoNome = existente.Nome;
+            }
+            else
+            {
+                var novaCong = new Congregacao(nomeLimpo, "", "", "", "");
+                await _congregacaoRepository.AdicionarAsync(novaCong, cancellationToken);
+                congregacaoIdFinal = novaCong.Id;
+                congregacaoNome = novaCong.Nome;
+            }
+        }
+        else
+        {
+            var congregacao = await _congregacaoRepository.ObterPorIdAsync(congregacaoIdFinal, cancellationToken)
+                ?? throw new DomainException("Congregação de origem não encontrada.");
+            congregacaoNome = congregacao.Nome;
+        }
+
+        var entity = new Orador(congregacaoIdFinal, dto.Nome, dto.TelefoneWhatsapp, dto.Email);
 
         if (dto.DiscursosIniciaisIds != null && dto.DiscursosIniciaisIds.Count > 0)
         {
@@ -69,7 +94,7 @@ public class OradorService : IOradorService
         }
 
         await _oradorRepository.AdicionarAsync(entity, cancellationToken);
-        return MapToDto(entity, congregacao.Nome);
+        return MapToDto(entity, congregacaoNome);
     }
 
     public async Task AtualizarAsync(AtualizarOradorDto dto, CancellationToken cancellationToken = default)
