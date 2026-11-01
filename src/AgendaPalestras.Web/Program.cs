@@ -75,10 +75,14 @@ var app = builder.Build();
 using (var scope = app.Services.CreateScope())
 {
     var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-    // Executa automaticamente as migrations pendentes no banco de dados
-    if (dbContext.Database.IsRelational())
+    // Executa automaticamente as migrations no PostgreSQL ou cria banco em testes (ex: SQLite)
+    if (dbContext.Database.IsNpgsql())
     {
         dbContext.Database.Migrate();
+    }
+    else
+    {
+        dbContext.Database.EnsureCreated();
     }
 
     var authService = scope.ServiceProvider.GetRequiredService<IAuthService>();
