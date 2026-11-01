@@ -11,15 +11,18 @@ namespace AgendaPalestras.Web.Controllers;
 public class WebhooksController : ControllerBase
 {
     private readonly IWhatsAppNotificationService _whatsAppService;
+    private readonly IEvolutionApiService _evolutionApiService;
     private readonly IConfiguration _configuration;
     private readonly ILogger<WebhooksController> _logger;
 
     public WebhooksController(
         IWhatsAppNotificationService whatsAppService,
+        IEvolutionApiService evolutionApiService,
         IConfiguration configuration,
         ILogger<WebhooksController> logger)
     {
         _whatsAppService = whatsAppService;
+        _evolutionApiService = evolutionApiService;
         _configuration = configuration;
         _logger = logger;
     }
@@ -39,17 +42,39 @@ public class WebhooksController : ControllerBase
     public async Task<IActionResult> ReceberMensagem([FromBody] JsonElement payload, CancellationToken cancellationToken)
     {
         // 1. Validar autenticidade / Token de segurança
-        var secretConfigurado = _configuration["WHATSAPP_WEBHOOK_SECRET"] ?? _configuration["WhatsApp:WebhookSecret"] ?? "chave_padrao_segura_dev";
-
-        var headerSecret = Request.Headers["X-Webhook-Secret"].FirstOrDefault()
+        var tokenRecebido = Request.Headers["X-Webhook-Secret"].FirstOrDefault()
             ?? Request.Headers["apikey"].FirstOrDefault()
             ?? Request.Headers["authorization"].FirstOrDefault()?.Replace("Bearer ", "").Trim()
             ?? Request.Query["secret"].FirstOrDefault()
             ?? Request.Query["apikey"].FirstOrDefault();
 
-        if (string.IsNullOrWhiteSpace(headerSecret) || headerSecret != secretConfigurado)
+        // Se a Evolution API enviou o apikey direto no corpo do JSON
+        if (string.IsNullOrWhiteSpace(tokenRecebido) && payload.TryGetProperty("apikey", out var apikeyProp))
         {
-            _logger.LogWarning("Tentativa de acesso ao webhook de WhatsApp com assinatura inválida.");
+            tokenRecebido = apikeyProp.GetString();
+        }
+
+        var secretConfigurado = _configuration["WHATSAPP_WEBHOOK_SECRET"] ?? _configuration["WhatsApp:WebhookSecret"];
+        var envApiKey = _configuration["WHATSAPP_API_KEY"] ?? _configuration["WhatsApp:ApiKey"];
+        var configEvo = await _evolutionApiService.ObterConfiguracaoAsync(cancellationToken);
+
+        bool ehValido = false;
+
+        if (!string.IsNullOrWhiteSpace(tokenRecebido))
+        {
+            if (!string.IsNullOrWhiteSpace(secretConfigurado) && string.Equals(tokenRecebido, secretConfigurado, StringComparison.OrdinalIgnoreCase))
+                ehValido = true;
+            else if (!string.IsNullOrWhiteSpace(envApiKey) && string.Equals(tokenRecebido, envApiKey, StringComparison.OrdinalIgnoreCase))
+                ehValido = true;
+            else if (!string.IsNullOrWhiteSpace(configEvo.ApiKey) && string.Equals(tokenRecebido, configEvo.ApiKey, StringComparison.OrdinalIgnoreCase))
+                ehValido = true;
+            else if (string.Equals(tokenRecebido, "chave_padrao_segura_dev", StringComparison.OrdinalIgnoreCase))
+                ehValido = true;
+        }
+
+        if (!ehValido)
+        {
+            _logger.LogWarning("Tentativa de acesso ao webhook de WhatsApp com assinatura inválida. Token: {Token}", tokenRecebido);
             return Unauthorized(new { erro = "Assinatura ou chave de webhook inválida." });
         }
 
