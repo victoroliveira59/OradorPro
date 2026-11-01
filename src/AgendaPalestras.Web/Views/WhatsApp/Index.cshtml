@@ -6,7 +6,7 @@
 <div class="row align-items-center mb-4">
     <div class="col-md-8">
         <h2 class="fw-bold mb-1"><i class="bi bi-whatsapp text-success"></i> Conexão WhatsApp</h2>
-        <p class="text-muted mb-0">Gerencie a conexão do WhatsApp do Administrador com a Evolution API para envio automatizado de convites e lembretes.</p>
+        <p class="text-muted mb-0">Gerencie a conexão da sua instância do WhatsApp para envio e recebimento automatizado de convites de palestras e lembretes.</p>
     </div>
     <div class="col-md-4 text-md-end mt-3 mt-md-0">
         <a asp-action="Index" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-clockwise"></i> Recarregar</a>
@@ -29,214 +29,428 @@
     </div>
 }
 
-<div class="row g-4">
-    <!-- Card de Status e Conexão -->
-    <div class="col-lg-6">
-        <div class="card shadow-sm border-0 h-100">
-            <div class="card-header bg-white py-3 border-0">
-                <h5 class="card-title fw-bold mb-0 text-dark">
-                    <i class="bi bi-broadcast text-primary me-2"></i> Status da Conexão
-                </h5>
+@if (Model.InstanciaNaoConfigurada)
+{
+    <div class="card shadow-sm border-0 mb-4">
+        <div class="card-body p-5 text-center">
+            <div class="mb-3">
+                <i class="bi bi-hourglass-top text-warning display-3"></i>
             </div>
-            <div class="card-body">
-                <div class="d-flex align-items-center justify-content-between p-3 rounded bg-light mb-4">
-                    <div>
-                        <div class="text-muted small text-uppercase fw-semibold">Estado Atual</div>
-                        <div class="fs-5 fw-bold" id="status-texto">
-                            @if (Model.Status.Conectado)
-                            {
-                                <span class="badge bg-success px-3 py-2"><i class="bi bi-check-circle me-1"></i> Conectado (Online)</span>
-                            }
-                            else if (Model.Status.State == "connecting")
-                            {
-                                <span class="badge bg-warning text-dark px-3 py-2"><i class="bi bi-hourglass-split me-1"></i> Conectando...</span>
-                            }
-                            else if (Model.Status.State == "not_created")
-                            {
-                                <span class="badge bg-secondary px-3 py-2"><i class="bi bi-plus-circle me-1"></i> Instância Não Criada</span>
-                            }
-                            else
-                            {
-                                <span class="badge bg-danger px-3 py-2"><i class="bi bi-x-circle me-1"></i> Desconectado</span>
-                            }
+            <h4 class="fw-bold text-dark">Instância WhatsApp Aguardando Liberação</h4>
+            <p class="text-muted mx-auto" style="max-width: 600px;">
+                O seu perfil de coordenador ainda não possui uma sessão da <strong>Evolution API</strong> vinculada.
+                Para manter a segurança e o isolamento dos dados, o <strong>Super Administrador</strong> deve criar e vincular uma instância para a sua congregação.
+            </p>
+            <div class="alert alert-light border d-inline-block text-start p-3 mb-0">
+                <div class="small fw-bold text-secondary mb-1"><i class="bi bi-info-circle me-1"></i> O que fazer:</div>
+                <div class="small text-muted">Entre em contato com o Administrador do sistema e solicite a liberação da sua instância. Assim que configurada, o botão de conexão e o QR Code aparecerão automaticamente aqui.</div>
+            </div>
+        </div>
+    </div>
+}
+else
+{
+    <div class="row g-4 mb-4">
+        <!-- Card de Status e Conexão -->
+        <div class="col-lg-6">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-header bg-white py-3 border-0">
+                    <h5 class="card-title fw-bold mb-0 text-dark">
+                        <i class="bi bi-broadcast text-primary me-2"></i> Status da Conexão
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex align-items-center justify-content-between p-3 rounded bg-light mb-4">
+                        <div>
+                            <div class="text-muted small text-uppercase fw-semibold">Estado Atual</div>
+                            <div class="fs-5 fw-bold" id="status-texto">
+                                @if (Model.Status.Conectado)
+                                {
+                                    <span class="badge bg-success px-3 py-2"><i class="bi bi-check-circle me-1"></i> Conectado (Online)</span>
+                                }
+                                else if (Model.Status.State == "connecting")
+                                {
+                                    <span class="badge bg-warning text-dark px-3 py-2"><i class="bi bi-hourglass-split me-1"></i> Conectando...</span>
+                                }
+                                else if (Model.Status.State == "not_created")
+                                {
+                                    <span class="badge bg-secondary px-3 py-2"><i class="bi bi-plus-circle me-1"></i> Instância Não Criada</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-danger px-3 py-2"><i class="bi bi-x-circle me-1"></i> Desconectado</span>
+                                }
+                            </div>
+                        </div>
+                        <div class="text-end">
+                            <div class="text-muted small">Instância Ativa</div>
+                            <span class="badge bg-dark">@Model.Configuracao.InstanceName</span>
                         </div>
                     </div>
-                    <div class="text-end">
-                        <div class="text-muted small">Instância</div>
-                        <span class="badge bg-dark">@Model.Configuracao.InstanceName</span>
-                    </div>
-                </div>
 
-                @if (!Model.Status.Conectado)
-                {
-                    <div class="text-center py-2 mb-3">
-                        <p class="text-muted">Clique no botão abaixo para gerar o QR Code de autenticação com o WhatsApp do Administrador.</p>
-                        <form asp-action="Conectar" method="post" class="d-inline">
+                    @if (!Model.Status.Conectado)
+                    {
+                        <div class="text-center py-2 mb-3">
+                            <p class="text-muted">Clique no botão abaixo para gerar o QR Code de autenticação com o WhatsApp.</p>
+                            <form asp-action="Conectar" method="post" class="d-inline">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="instanceName" value="@Model.Configuracao.InstanceName" />
+                                <button type="submit" class="btn btn-success btn-lg px-4 shadow-sm">
+                                    <i class="bi bi-qr-code me-2"></i> Conectar / Gerar QR Code
+                                </button>
+                            </form>
+                        </div>
+
+                        @if (Model.QrCode != null && !string.IsNullOrEmpty(Model.QrCode.QrCodeBase64))
+                        {
+                            <div class="border rounded p-4 text-center bg-white shadow-sm mt-3" id="area-qrcode">
+                                <h6 class="fw-bold text-success mb-2"><i class="bi bi-camera me-1"></i> Escaneie o QR Code no seu celular</h6>
+                                <div class="my-3">
+                                    <img src="@Model.QrCode.QrCodeBase64" alt="QR Code WhatsApp" class="img-fluid border rounded p-2 bg-white shadow-sm" style="max-width: 250px;" />
+                                </div>
+
+                                @if (!string.IsNullOrEmpty(Model.QrCode.PairingCode))
+                                {
+                                    <div class="alert alert-info py-2 px-3 d-inline-block mb-3">
+                                        <small class="d-block text-muted">Código de Pareamento:</small>
+                                        <strong class="fs-5 letter-spacing-2">@Model.QrCode.PairingCode</strong>
+                                    </div>
+                                }
+
+                                <ol class="text-start small text-muted mx-auto" style="max-width: 320px;">
+                                    <li>Abra o WhatsApp no aparelho que enviará os convites.</li>
+                                    <li>Acesse <strong>Aparelhos Conectados</strong>.</li>
+                                    <li>Toque em <strong>Conectar um aparelho</strong>.</li>
+                                    <li>Aponte a câmera para o QR Code acima.</li>
+                                </ol>
+                                <div class="text-muted small mt-2">
+                                    <span class="spinner-border spinner-border-sm text-success me-1" role="status"></span>
+                                    Aguardando leitura do QR Code... Atualizando automaticamente.
+                                </div>
+                            </div>
+                        }
+                    }
+                    else
+                    {
+                        <div class="alert alert-success d-flex align-items-center mb-4" role="alert">
+                            <i class="bi bi-shield-check fs-2 me-3 text-success"></i>
+                            <div>
+                                <strong>WhatsApp Ativo e Pronto!</strong>
+                                <div class="small">A automação está utilizando esta sessão para disparar convites de palestras e lembretes aos oradores.</div>
+                            </div>
+                        </div>
+
+                        <form asp-action="Desconectar" method="post">
                             @Html.AntiForgeryToken()
-                            <button type="submit" class="btn btn-success btn-lg px-4 shadow-sm">
-                                <i class="bi bi-qr-code me-2"></i> Conectar / Gerar QR Code
+                            <input type="hidden" name="instanceName" value="@Model.Configuracao.InstanceName" />
+                            <button type="submit" class="btn btn-outline-danger w-100" onclick="return confirm('Deseja realmente desconectar esta sessão do WhatsApp?');">
+                                <i class="bi bi-power me-2"></i> Desconectar WhatsApp
                             </button>
                         </form>
-                    </div>
-
-                    @if (Model.QrCode != null && !string.IsNullOrEmpty(Model.QrCode.QrCodeBase64))
-                    {
-                        <div class="border rounded p-4 text-center bg-white shadow-sm mt-3" id="area-qrcode">
-                            <h6 class="fw-bold text-success mb-2"><i class="bi bi-camera me-1"></i> Escaneie o QR Code no seu celular</h6>
-                            <div class="my-3">
-                                <img src="@Model.QrCode.QrCodeBase64" alt="QR Code WhatsApp" class="img-fluid border rounded p-2 bg-white shadow-sm" style="max-width: 250px;" />
-                            </div>
-
-                            @if (!string.IsNullOrEmpty(Model.QrCode.PairingCode))
-                            {
-                                <div class="alert alert-info py-2 px-3 d-inline-block mb-3">
-                                    <small class="d-block text-muted">Código de Pareamento:</small>
-                                    <strong class="fs-5 letter-spacing-2">@Model.QrCode.PairingCode</strong>
-                                </div>
-                            }
-
-                            <ol class="text-start small text-muted mx-auto" style="max-width: 320px;">
-                                <li>Abra o WhatsApp no aparelho do administrador.</li>
-                                <li>Acesse <strong>Aparelhos Conectados</strong>.</li>
-                                <li>Toque em <strong>Conectar um aparelho</strong>.</li>
-                                <li>Aponte a câmera para o QR Code acima.</li>
-                            </ol>
-                            <div class="text-muted small mt-2">
-                                <span class="spinner-border spinner-border-sm text-success me-1" role="status"></span>
-                                Aguardando leitura do QR Code... Atualizando automaticamente.
-                            </div>
-                        </div>
                     }
-                }
-                else
-                {
-                    <div class="alert alert-success d-flex align-items-center mb-4" role="alert">
-                        <i class="bi bi-shield-check fs-2 me-3 text-success"></i>
-                        <div>
-                            <strong>WhatsApp Ativo e Pronto!</strong>
-                            <div class="small">A automação está utilizando este número para disparar convites de palestras e lembretes aos oradores.</div>
-                        </div>
-                    </div>
-
-                    <form asp-action="Desconectar" method="post">
-                        @Html.AntiForgeryToken()
-                        <button type="submit" class="btn btn-outline-danger w-100" onclick="return confirm('Deseja realmente desconectar esta sessão do WhatsApp?');">
-                            <i class="bi bi-power me-2"></i> Desconectar WhatsApp
-                        </button>
-                    </form>
-                }
-            </div>
-        </div>
-    </div>
-
-    <!-- Coluna Direita: Teste de Envio e Configurações da API -->
-    <div class="col-lg-6">
-        <!-- Card de Teste de Envio -->
-        <div class="card shadow-sm border-0 mb-4">
-            <div class="card-header bg-white py-3 border-0">
-                <h5 class="card-title fw-bold mb-0 text-dark">
-                    <i class="bi bi-send text-primary me-2"></i> Teste de Disparo
-                </h5>
-            </div>
-            <div class="card-body">
-                <p class="text-muted small">Envie uma mensagem de teste para verificar se o WhatsApp conectado está entregando mensagens normalmente.</p>
-                <form asp-action="TestarEnvio" method="post">
-                    @Html.AntiForgeryToken()
-                    <div class="mb-3">
-                        <label class="form-label small fw-semibold">Número do Destinatário (com DDD)</label>
-                        <input type="text" name="Telefone" class="form-control" placeholder="(11) 98888-7777 ou 5511988887777" required />
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label small fw-semibold">Mensagem de Teste</label>
-                        <textarea name="Mensagem" class="form-control" rows="2" required>Olá! Este é um teste de envio da plataforma Agenda de Palestras via Evolution API.</textarea>
-                    </div>
-                    <button type="submit" class="btn btn-primary btn-sm px-4">
-                        <i class="bi bi-send-check me-1"></i> Disparar Mensagem de Teste
-                    </button>
-                </form>
-            </div>
-        </div>
-
-        <!-- Card de Configuração do Webhook -->
-        <div class="card shadow-sm border-0 mb-4">
-            <div class="card-header bg-white py-3 border-0">
-                <h5 class="card-title fw-bold mb-0 text-dark">
-                    <i class="bi bi-arrow-down-left-square text-success me-2"></i> Webhook para Respostas do Orador
-                </h5>
-            </div>
-            <div class="card-body">
-                <p class="text-muted small">
-                    Configure a Evolution API para encaminhar mensagens recebidas dos oradores diretamente para este sistema.
-                </p>
-
-                @{
-                    var hostUrl = $"{Context.Request.Scheme}://{Context.Request.Host}/api/webhooks/whatsapp";
-                }
-
-                <form asp-action="ConfigurarWebhook" method="post" class="mb-3">
-                    @Html.AntiForgeryToken()
-                    <label class="form-label small fw-semibold">URL do Webhook da Aplicação</label>
-                    <div class="input-group mb-2">
-                        <input type="text" id="webhookUrlInput" name="webhookUrl" class="form-control font-monospace small" value="@hostUrl" required />
-                        <button class="btn btn-outline-secondary" type="button" onclick="navigator.clipboard.writeText(document.getElementById('webhookUrlInput').value); alert('URL copiada!');">
-                            <i class="bi bi-clipboard"></i> Copiar
-                        </button>
-                    </div>
-                    <div class="form-text small mb-3">
-                        <i class="bi bi-info-circle me-1"></i> Em ambiente de desenvolvimento local, utilize uma URL pública via <strong>ngrok</strong> ou túnel similar para a Evolution API conseguir alcançar sua máquina.
-                    </div>
-                    <button type="submit" class="btn btn-success btn-sm px-3">
-                        <i class="bi bi-lightning-charge me-1"></i> Configurar Automaticamente na Evolution API
-                    </button>
-                </form>
-
-                <hr class="text-muted opacity-25 my-3" />
-
-                <div class="bg-light p-3 rounded small">
-                    <div class="fw-bold mb-1"><i class="bi bi-sliders me-1"></i> Configuração Manual no Painel da Evolution API:</div>
-                    <ul class="mb-0 ps-3">
-                        <li><strong>URL:</strong> <code>@hostUrl</code></li>
-                        <li><strong>Eventos selecionados:</strong> <code>MESSAGES_UPSERT</code></li>
-                        <li><strong>Webhook By Events:</strong> <code>Desmarcado (false)</code></li>
-                        <li><strong>Header:</strong> <code>apikey: chave_padrao_segura_dev</code> (ou parâmetro na URL <code>?apikey=...</code>)</li>
-                    </ul>
                 </div>
             </div>
         </div>
 
-        <!-- Card de Configurações da Evolution API -->
-        <div class="card shadow-sm border-0">
-            <div class="card-header bg-white py-3 border-0">
-                <h5 class="card-title fw-bold mb-0 text-dark">
-                    <i class="bi bi-gear text-secondary me-2"></i> Parâmetros da Evolution API
-                </h5>
+        <!-- Coluna Direita: Teste de Disparo -->
+        <div class="col-lg-6">
+            <div class="card shadow-sm border-0 mb-4 h-100">
+                <div class="card-header bg-white py-3 border-0">
+                    <h5 class="card-title fw-bold mb-0 text-dark">
+                        <i class="bi bi-send text-primary me-2"></i> Teste de Disparo
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted small">Envie uma mensagem de teste para verificar se o WhatsApp conectado está entregando mensagens normalmente.</p>
+                    <form asp-action="TestarEnvio" method="post">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="InstanceName" value="@Model.Configuracao.InstanceName" />
+                        <div class="mb-3">
+                            <label class="form-label small fw-semibold">Número do Destinatário (com DDD)</label>
+                            <input type="text" name="Telefone" class="form-control" placeholder="(31) 98888-7777 ou 5531988887777" required />
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small fw-semibold">Mensagem de Teste</label>
+                            <textarea name="Mensagem" class="form-control" rows="3" required>Olá! Este é um teste de envio da plataforma Agenda de Palestras via Evolution API.</textarea>
+                        </div>
+                        <button type="submit" class="btn btn-primary btn-sm px-4">
+                            <i class="bi bi-send-check me-1"></i> Disparar Mensagem de Teste
+                        </button>
+                    </form>
+                </div>
             </div>
-            <div class="card-body">
-                <form asp-action="SalvarConfiguracao" method="post">
+        </div>
+    </div>
+}
+
+@if (Model.IsSuperAdmin)
+{
+    <hr class="my-5 text-muted opacity-25" />
+
+    <div class="d-flex align-items-center mb-3">
+        <h4 class="fw-bold mb-0"><i class="bi bi-shield-lock-fill text-danger me-2"></i> Painel do Super Administrador</h4>
+        <span class="badge bg-danger ms-2">Acesso Restrito</span>
+    </div>
+
+    <!-- Gerenciamento de Instâncias dos Usuários -->
+    <div class="card shadow-sm border-0 mb-5">
+        <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center border-0">
+            <div>
+                <h5 class="card-title fw-bold mb-0 text-dark">
+                    <i class="bi bi-people-fill text-primary me-2"></i> Gerenciamento de Instâncias dos Usuários
+                </h5>
+                <small class="text-muted">Vincule a sessão do WhatsApp a cada coordenador para habilitar a conexão da congregação dele.</small>
+            </div>
+            <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#modalCriarInstancia">
+                <i class="bi bi-plus-circle me-1"></i> Nova Instância na Evolution API
+            </button>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light small">
+                        <tr>
+                            <th class="ps-4">Usuário</th>
+                            <th>Email</th>
+                            <th>Papel</th>
+                            <th>Congregação</th>
+                            <th>Instância Evolution API</th>
+                            <th>Status</th>
+                            <th class="text-end pe-4">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (Model.UsuariosInstancias.Count == 0)
+                        {
+                            <tr>
+                                <td colspan="7" class="text-center py-4 text-muted">Nenhum usuário cadastrado.</td>
+                            </tr>
+                        }
+                        @foreach (var u in Model.UsuariosInstancias)
+                        {
+                            <tr>
+                                <td class="ps-4 fw-semibold">@u.Nome</td>
+                                <td class="small text-muted">@u.Email</td>
+                                <td>
+                                    <span class="badge @(u.Papel == "SuperAdmin" ? "bg-danger" : "bg-primary")">@u.Papel</span>
+                                </td>
+                                <td>@(u.NomeCongregacao ?? "—")</td>
+                                <td>
+                                    @if (!string.IsNullOrWhiteSpace(u.InstanceName))
+                                    {
+                                        <code class="text-dark bg-light px-2 py-1 rounded">@u.InstanceName</code>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted small fst-italic">Não vinculada</span>
+                                    }
+                                </td>
+                                <td>
+                                    @if (u.TemWhatsAppConfigurado)
+                                    {
+                                        <span class="badge bg-success-subtle text-success border border-success-subtle">
+                                            <i class="bi bi-check-circle me-1"></i> Vinculado
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle">
+                                            <i class="bi bi-clock me-1"></i> Pendente
+                                        </span>
+                                    }
+                                </td>
+                                <td class="text-end pe-4">
+                                    <button type="button" class="btn btn-outline-secondary btn-sm"
+                                            data-bs-toggle="modal"
+                                            data-bs-target="#modalVincularInstancia"
+                                            data-usuario-id="@u.UsuarioId"
+                                            data-usuario-nome="@u.Nome"
+                                            data-instancia="@(u.InstanceName ?? "")"
+                                            data-api-url="@(u.ApiUrl ?? "")"
+                                            data-api-key="@(u.ApiKey ?? "")">
+                                        <i class="bi bi-pencil-square me-1"></i> Configurar
+                                    </button>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <!-- Card de Configuração do Webhook -->
+        <div class="col-lg-6">
+            <div class="card shadow-sm border-0 mb-4 h-100">
+                <div class="card-header bg-white py-3 border-0">
+                    <h5 class="card-title fw-bold mb-0 text-dark">
+                        <i class="bi bi-arrow-down-left-square text-success me-2"></i> Webhook para Respostas do Orador
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted small">
+                        Configure a Evolution API para encaminhar mensagens recebidas dos oradores diretamente para este sistema.
+                    </p>
+
+                    @{
+                        var hostUrl = $"{Context.Request.Scheme}://{Context.Request.Host}/api/webhooks/whatsapp";
+                    }
+
+                    <form asp-action="ConfigurarWebhook" method="post" class="mb-3">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="instanceName" value="@Model.Configuracao.InstanceName" />
+                        <label class="form-label small fw-semibold">URL do Webhook da Aplicação</label>
+                        <div class="input-group mb-2">
+                            <input type="text" id="webhookUrlInput" name="webhookUrl" class="form-control font-monospace small" value="@hostUrl" required />
+                            <button class="btn btn-outline-secondary" type="button" onclick="navigator.clipboard.writeText(document.getElementById('webhookUrlInput').value); alert('URL copiada!');">
+                                <i class="bi bi-clipboard"></i> Copiar
+                            </button>
+                        </div>
+                        <div class="form-text small mb-3">
+                            <i class="bi bi-info-circle me-1"></i> Aponte para a URL pública do seu domínio para receber as confirmações de palestras.
+                        </div>
+                        <button type="submit" class="btn btn-success btn-sm px-3">
+                            <i class="bi bi-lightning-charge me-1"></i> Configurar na Instância Ativa
+                        </button>
+                    </form>
+
+                    <div class="bg-light p-3 rounded small mt-3">
+                        <div class="fw-bold mb-1"><i class="bi bi-sliders me-1"></i> Configuração Manual no Painel:</div>
+                        <ul class="mb-0 ps-3">
+                            <li><strong>URL:</strong> <code>@hostUrl</code></li>
+                            <li><strong>Eventos:</strong> <code>MESSAGES_UPSERT</code></li>
+                            <li><strong>Webhook By Events:</strong> <code>Desmarcado (false)</code></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Card de Configurações Globais da Evolution API -->
+        <div class="col-lg-6">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-header bg-white py-3 border-0">
+                    <h5 class="card-title fw-bold mb-0 text-dark">
+                        <i class="bi bi-gear text-secondary me-2"></i> Parâmetros Globais da Evolution API
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form asp-action="SalvarConfiguracao" method="post">
+                        @Html.AntiForgeryToken()
+                        <div class="mb-3">
+                            <label class="form-label small fw-semibold">URL Base da Evolution API</label>
+                            <input type="url" name="ApiUrl" class="form-control" value="@Model.Configuracao.ApiUrl" placeholder="https://evolution.seuservidor.com" required />
+                            <div class="form-text small">Servidor central onde as instâncias dos coordenadores são criadas.</div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small fw-semibold">Global ApiKey (Chave Mestra)</label>
+                            <input type="text" name="ApiKey" class="form-control font-monospace" value="@Model.Configuracao.ApiKey" placeholder="Sua chave mestra secreta da Evolution API" />
+                            <div class="form-text small">Utilizada pelo Super Admin para criar instâncias e gerenciar webhooks.</div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small fw-semibold">Nome da Instância Padrão / SuperAdmin</label>
+                            <input type="text" name="InstanceName" class="form-control" value="@Model.Configuracao.InstanceName" placeholder="oradorpro-admin" required />
+                            <div class="form-text small">Instância global usada como fallback caso o usuário não tenha instância própria.</div>
+                        </div>
+                        <button type="submit" class="btn btn-outline-dark btn-sm px-3">
+                            <i class="bi bi-save me-1"></i> Salvar Parâmetros Globais
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Vincular Instância ao Usuário -->
+    <div class="modal fade" id="modalVincularInstancia" tabindex="-1" aria-labelledby="modalVincularInstanciaLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <form asp-action="SalvarInstanciaUsuario" method="post">
                     @Html.AntiForgeryToken()
-                    <div class="mb-3">
-                        <label class="form-label small fw-semibold">URL da Evolution API</label>
-                        <input type="url" name="ApiUrl" class="form-control" value="@Model.Configuracao.ApiUrl" placeholder="http://localhost:8080 ou https://evolution.seuservidor.com" required />
-                        <div class="form-text small">Endereço base do servidor da Evolution API.</div>
+                    <input type="hidden" id="modalUsuarioId" name="UsuarioId" />
+                    <div class="modal-header">
+                        <h5 class="modal-title fw-bold" id="modalVincularInstanciaLabel">
+                            <i class="bi bi-link-45deg text-primary me-1"></i> Vincular Instância
+                        </h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
-                    <div class="mb-3">
-                        <label class="form-label small fw-semibold">Chave de API (Global ApiKey)</label>
-                        <input type="text" name="ApiKey" class="form-control font-monospace" value="@Model.Configuracao.ApiKey" placeholder="Sua chave secreta da Evolution API" />
-                        <div class="form-text small">Header <code>apikey</code> utilizado para autenticação.</div>
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label class="form-label small fw-semibold">Usuário</label>
+                            <input type="text" id="modalUsuarioNome" class="form-control" readonly disabled />
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small fw-semibold">Nome da Instância na Evolution API</label>
+                            <input type="text" id="modalInstanceName" name="InstanceName" class="form-control font-monospace" placeholder="ex: oradorpro-venda-nova" required />
+                            <div class="form-text small">Assim que preenchido, o botão "Conectar WhatsApp" e o QR Code aparecerão para este usuário.</div>
+                        </div>
+                        <div class="accordion mb-3" id="accordionConfigAvancada">
+                            <div class="accordion-item border-0">
+                                <h2 class="accordion-header">
+                                    <button class="accordion-button collapsed px-0 bg-transparent text-primary small py-1" type="button" data-bs-toggle="collapse" data-bs-target="#collapseAvancada">
+                                        <i class="bi bi-sliders me-1"></i> Sobrescrever URL e ApiKey (Opcional)
+                                    </button>
+                                </h2>
+                                <div id="collapseAvancada" class="accordion-collapse collapse" data-bs-parent="#accordionConfigAvancada">
+                                    <div class="accordion-body px-0 pt-2 pb-0">
+                                        <div class="mb-2">
+                                            <label class="form-label small">URL Específica da API (se não usar a global)</label>
+                                            <input type="url" id="modalApiUrl" name="ApiUrl" class="form-control form-control-sm" placeholder="Deixe em branco para usar o padrão global" />
+                                        </div>
+                                        <div class="mb-2">
+                                            <label class="form-label small">ApiKey Específica (se não usar a global)</label>
+                                            <input type="text" id="modalApiKey" name="ApiKey" class="form-control form-control-sm font-monospace" placeholder="Deixe em branco para usar o padrão global" />
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                    <div class="mb-3">
-                        <label class="form-label small fw-semibold">Nome da Instância</label>
-                        <input type="text" name="InstanceName" class="form-control" value="@Model.Configuracao.InstanceName" placeholder="oradorpro-admin" required />
-                        <div class="form-text small">Identificador único da instância WhatsApp na Evolution API.</div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-primary btn-sm px-3">
+                            <i class="bi bi-check-lg me-1"></i> Salvar e Ativar
+                        </button>
                     </div>
-                    <button type="submit" class="btn btn-outline-dark btn-sm px-3">
-                        <i class="bi bi-save me-1"></i> Salvar Parâmetros
-                    </button>
                 </form>
             </div>
         </div>
     </div>
-</div>
+
+    <!-- Modal Criar Instância na Evolution API -->
+    <div class="modal fade" id="modalCriarInstancia" tabindex="-1" aria-labelledby="modalCriarInstanciaLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <form asp-action="CriarInstanciaEvolution" method="post">
+                    @Html.AntiForgeryToken()
+                    <div class="modal-header">
+                        <h5 class="modal-title fw-bold" id="modalCriarInstanciaLabel">
+                            <i class="bi bi-plus-circle text-primary me-1"></i> Provisionar Instância na Evolution API
+                        </h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p class="text-muted small">
+                            Cria a sessão automaticamente no servidor da Evolution API via chamada de API. Após criada, basta vinculá-la ao usuário correspondente.
+                        </p>
+                        <div class="mb-3">
+                            <label class="form-label small fw-semibold">Nome da Nova Instância</label>
+                            <input type="text" name="instanceName" class="form-control font-monospace" placeholder="ex: oradorpro-betim" required />
+                            <div class="form-text small">Evite espaços e caracteres especiais (utilize letras minúsculas e hífen).</div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-success btn-sm px-3">
+                            <i class="bi bi-hdd-network me-1"></i> Provisionar na Evolution API
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+}
 
 @section Scripts {
     <script>
@@ -245,7 +459,7 @@
             var areaQr = document.getElementById('area-qrcode');
             if (areaQr) {
                 var timer = setInterval(function() {
-                    fetch('@Url.Action("Status", "WhatsApp")')
+                    fetch('@Url.Action("Status", "WhatsApp")?instanceName=@Model.Configuracao.InstanceName')
                         .then(function(res) { return res.json(); })
                         .then(function(data) {
                             if (data && data.conectado) {
@@ -257,6 +471,25 @@
                             console.log('Verificando status...', err);
                         });
                 }, 4000);
+            }
+
+            // Manipulação do Modal de Vinculação
+            var modalVincular = document.getElementById('modalVincularInstancia');
+            if (modalVincular) {
+                modalVincular.addEventListener('show.bs.modal', function (event) {
+                    var button = event.relatedTarget;
+                    var usuarioId = button.getAttribute('data-usuario-id');
+                    var usuarioNome = button.getAttribute('data-usuario-nome');
+                    var instancia = button.getAttribute('data-instancia');
+                    var apiUrl = button.getAttribute('data-api-url');
+                    var apiKey = button.getAttribute('data-api-key');
+
+                    document.getElementById('modalUsuarioId').value = usuarioId || '';
+                    document.getElementById('modalUsuarioNome').value = usuarioNome || '';
+                    document.getElementById('modalInstanceName').value = instancia || '';
+                    document.getElementById('modalApiUrl').value = apiUrl || '';
+                    document.getElementById('modalApiKey').value = apiKey || '';
+                });
             }
         })();
     </script>

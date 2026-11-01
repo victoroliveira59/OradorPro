@@ -12,6 +12,11 @@ public class Usuario : BaseEntity
     public Guid? CongregacaoId { get; private set; }
     public Congregacao? Congregacao { get; private set; }
     public bool Ativo { get; private set; } = true;
+    public string? EvolutionInstanceName { get; private set; }
+    public string? EvolutionApiUrl { get; private set; }
+    public string? EvolutionApiKey { get; private set; }
+
+    public bool TemWhatsAppConfigurado => !string.IsNullOrWhiteSpace(EvolutionInstanceName);
 
     // Construtor EF
     protected Usuario() { }
@@ -72,6 +77,14 @@ public class Usuario : BaseEntity
     public void Desativar()
     {
         Ativo = false;
+        MarcarComoAtualizado();
+    }
+
+    public void ConfigurarEvolution(string? instanceName, string? apiUrl = null, string? apiKey = null)
+    {
+        EvolutionInstanceName = string.IsNullOrWhiteSpace(instanceName) ? null : instanceName.Trim();
+        EvolutionApiUrl = string.IsNullOrWhiteSpace(apiUrl) ? null : apiUrl.Trim();
+        EvolutionApiKey = string.IsNullOrWhiteSpace(apiKey) ? null : apiKey.Trim();
         MarcarComoAtualizado();
     }
 }

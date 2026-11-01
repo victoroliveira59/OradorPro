@@ -36,6 +36,15 @@ public class UsuarioConfiguration : IEntityTypeConfiguration<Usuario>
         builder.Property(u => u.CriadoEm)
             .IsRequired();
 
+        builder.Property(u => u.EvolutionInstanceName)
+            .HasMaxLength(100);
+
+        builder.Property(u => u.EvolutionApiUrl)
+            .HasMaxLength(250);
+
+        builder.Property(u => u.EvolutionApiKey)
+            .HasMaxLength(250);
+
         builder.HasOne(u => u.Congregacao)
             .WithMany()
             .HasForeignKey(u => u.CongregacaoId)
