@@ -1,0 +1,99 @@
+@model AgendaPalestras.Application.DTOs.RegistrarUsuarioDto
+@{
+    ViewData["Title"] = "Cadastrar Usuário e Congregação";
+    Layout = "_Layout";
+}
+
+<div class="row justify-content-center my-4">
+    <div class="col-md-8 col-lg-7">
+        <div class="card shadow border-0 rounded-3">
+            <div class="card-header bg-dark text-white text-center py-4">
+                <i class="bi bi-building-add fs-1 text-primary mb-2 d-block"></i>
+                <h4 class="mb-0 fw-bold">Criar Conta e Congregação</h4>
+                <p class="text-white-50 small mb-0">Cada congregação possui seu próprio ambiente seguro e isolado</p>
+            </div>
+            <div class="card-body p-4">
+                <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
+
+                <form asp-action="Register" method="post">
+                    @Html.AntiForgeryToken()
+
+                    <h5 class="fw-bold text-primary mb-3"><i class="bi bi-person-circle me-1"></i> Dados do Coordenador / Administrador</h5>
+                    
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-6">
+                            <label asp-for="Nome" class="form-label fw-semibold">Nome Completo *</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="bi bi-person"></i></span>
+                                <input asp-for="Nome" class="form-control" placeholder="Ex: Irmão Silva" required />
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="Email" class="form-label fw-semibold">E-mail de Acesso *</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="bi bi-envelope"></i></span>
+                                <input asp-for="Email" type="email" class="form-control" placeholder="seuemail@exemplo.com" required />
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <label asp-for="Senha" class="form-label fw-semibold">Senha de Acesso (mínimo 6 caracteres) *</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="bi bi-key"></i></span>
+                                <input asp-for="Senha" type="password" class="form-control" placeholder="••••••••" required minlength="6" />
+                            </div>
+                        </div>
+                    </div>
+
+                    <hr class="my-4" />
+
+                    <h5 class="fw-bold text-primary mb-3"><i class="bi bi-building me-1"></i> Dados da Sua Congregação</h5>
+                    
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-6">
+                            <label asp-for="NomeCongregacao" class="form-label fw-semibold">Nome da Congregação *</label>
+                            <input asp-for="NomeCongregacao" class="form-control" placeholder="Ex: Central, Jardim Esperança" required />
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="Cidade" class="form-label fw-semibold">Cidade / UF</label>
+                            <input asp-for="Cidade" class="form-control" placeholder="Ex: Belo Horizonte / MG" />
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="Circuito" class="form-label fw-semibold">Circuito</label>
+                            <input asp-for="Circuito" class="form-control" placeholder="Ex: MG-05" />
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="DiasReuniao" class="form-label fw-semibold">Dia da Reunião de Fim de Semana</label>
+                            <input asp-for="DiasReuniao" class="form-control" placeholder="Ex: Domingo ou Sábado" />
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="HorarioReuniao" class="form-label fw-semibold">Horário da Reunião</label>
+                            <input asp-for="HorarioReuniao" class="form-control" placeholder="Ex: 19:00 ou 09:30" />
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="Endereco" class="form-label fw-semibold">Endereço do Salão do Reino</label>
+                            <input asp-for="Endereco" class="form-control" placeholder="Ex: Rua das Flores, 123, Bairro Centro" />
+                        </div>
+                        <div class="col-12">
+                            <label asp-for="LinkGoogleMaps" class="form-label fw-semibold">Link do Google Maps</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="bi bi-geo-alt"></i></span>
+                                <input asp-for="LinkGoogleMaps" type="url" class="form-control" placeholder="https://maps.app.goo.gl/..." />
+                            </div>
+                            <small class="text-muted">Este link e o endereço serão enviados automaticamente no WhatsApp para os oradores visitantes.</small>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary w-100 py-2 fw-semibold fs-5">
+                        <i class="bi bi-check-circle"></i> Criar Conta e Minha Congregação
+                    </button>
+                </form>
+            </div>
+            <div class="card-footer bg-light text-center py-3 text-muted small">
+                <span>Já possui uma conta?</span>
+                <a asp-action="Login" class="text-primary fw-semibold ms-1 text-decoration-none">
+                    Entrar no Sistema
+                </a>
+            </div>
+        </div>
+    </div>
+</div>

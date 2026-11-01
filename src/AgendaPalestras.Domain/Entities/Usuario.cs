@@ -9,12 +9,14 @@ public class Usuario : BaseEntity
     public string Email { get; private set; } = string.Empty;
     public string HashSenha { get; private set; } = string.Empty;
     public string Papel { get; private set; } = "Admin";
+    public Guid? CongregacaoId { get; private set; }
+    public Congregacao? Congregacao { get; private set; }
     public bool Ativo { get; private set; } = true;
 
     // Construtor EF
     protected Usuario() { }
 
-    public Usuario(string nome, string email, string hashSenha, string papel = "Admin")
+    public Usuario(string nome, string email, string hashSenha, string papel = "Admin", Guid? congregacaoId = null)
     {
         if (string.IsNullOrWhiteSpace(nome))
             throw new DomainException("Nome do usuário não pode ser vazio.");
@@ -27,7 +29,17 @@ public class Usuario : BaseEntity
         Email = email.Trim().ToLowerInvariant();
         HashSenha = hashSenha;
         Papel = papel;
+        CongregacaoId = congregacaoId;
         Ativo = true;
+    }
+
+    public void AssociarCongregacao(Guid congregacaoId)
+    {
+        if (congregacaoId == Guid.Empty)
+            throw new DomainException("Congregação inválida.");
+
+        CongregacaoId = congregacaoId;
+        MarcarComoAtualizado();
     }
 
     public void AtualizarDados(string nome, string email)

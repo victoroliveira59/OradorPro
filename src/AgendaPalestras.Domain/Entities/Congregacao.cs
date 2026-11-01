@@ -11,6 +11,8 @@ public class Congregacao : BaseEntity
     public string Circuito { get; private set; } = string.Empty;
     public string DiasReuniao { get; private set; } = string.Empty;
     public string HorarioReuniao { get; private set; } = string.Empty;
+    public string? Endereco { get; private set; }
+    public string? LinkGoogleMaps { get; private set; }
     public bool Ativo { get; private set; } = true;
 
     // Coleções de navegação
@@ -19,7 +21,15 @@ public class Congregacao : BaseEntity
 
     protected Congregacao() { }
 
-    public Congregacao(string nome, string cidade, string circuito, string diasReuniao, string horarioReuniao, Guid? usuarioCriadorId = null)
+    public Congregacao(
+        string nome,
+        string cidade,
+        string circuito,
+        string diasReuniao,
+        string horarioReuniao,
+        Guid? usuarioCriadorId = null,
+        string? endereco = null,
+        string? linkGoogleMaps = null)
     {
         if (string.IsNullOrWhiteSpace(nome))
             throw new DomainException("Nome da congregação é obrigatório.");
@@ -29,11 +39,20 @@ public class Congregacao : BaseEntity
         Circuito = (circuito ?? string.Empty).Trim();
         DiasReuniao = (diasReuniao ?? string.Empty).Trim();
         HorarioReuniao = (horarioReuniao ?? string.Empty).Trim();
+        Endereco = string.IsNullOrWhiteSpace(endereco) ? null : endereco.Trim();
+        LinkGoogleMaps = string.IsNullOrWhiteSpace(linkGoogleMaps) ? null : linkGoogleMaps.Trim();
         UsuarioCriadorId = usuarioCriadorId;
         Ativo = true;
     }
 
-    public void Atualizar(string nome, string cidade, string circuito, string diasReuniao, string horarioReuniao)
+    public void Atualizar(
+        string nome,
+        string cidade,
+        string circuito,
+        string diasReuniao,
+        string horarioReuniao,
+        string? endereco = null,
+        string? linkGoogleMaps = null)
     {
         if (string.IsNullOrWhiteSpace(nome))
             throw new DomainException("Nome da congregação é obrigatório.");
@@ -43,6 +62,8 @@ public class Congregacao : BaseEntity
         Circuito = (circuito ?? string.Empty).Trim();
         DiasReuniao = (diasReuniao ?? string.Empty).Trim();
         HorarioReuniao = (horarioReuniao ?? string.Empty).Trim();
+        Endereco = string.IsNullOrWhiteSpace(endereco) ? null : endereco.Trim();
+        LinkGoogleMaps = string.IsNullOrWhiteSpace(linkGoogleMaps) ? null : linkGoogleMaps.Trim();
         MarcarComoAtualizado();
     }
 

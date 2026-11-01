@@ -14,6 +14,7 @@ public class AuthTests
 {
     private readonly PasswordHasherService _hasher = new();
     private readonly Mock<IUsuarioRepository> _mockUsuarioRepo = new();
+    private readonly Mock<ICongregacaoRepository> _mockCongregacaoRepo = new();
     private readonly Mock<ILogger<AuthService>> _mockLogger = new();
     private readonly IConfiguration _config;
 
@@ -70,7 +71,7 @@ public class AuthTests
         _mockUsuarioRepo.Setup(r => r.ObterPorEmailAsync(email, It.IsAny<CancellationToken>()))
             .ReturnsAsync(usuario);
 
-        var service = new AuthService(_mockUsuarioRepo.Object, _hasher, _config, _mockLogger.Object);
+        var service = new AuthService(_mockUsuarioRepo.Object, _mockCongregacaoRepo.Object, _hasher, _config, _mockLogger.Object);
 
         var dto = new LoginDto(email, senha);
         var autenticado = await service.AutenticarAsync(dto);
@@ -95,7 +96,7 @@ public class AuthTests
         _mockUsuarioRepo.Setup(r => r.ObterPorEmailAsync(email, It.IsAny<CancellationToken>()))
             .ReturnsAsync(usuario);
 
-        var service = new AuthService(_mockUsuarioRepo.Object, _hasher, _config, _mockLogger.Object);
+        var service = new AuthService(_mockUsuarioRepo.Object, _mockCongregacaoRepo.Object, _hasher, _config, _mockLogger.Object);
 
         var dto = new LoginDto(email, senha);
         var autenticado = await service.AutenticarAsync(dto);
@@ -108,13 +109,50 @@ public class AuthTests
     {
         _mockUsuarioRepo.Setup(r => r.ExisteAdminAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(false);
+        _mockCongregacaoRepo.Setup(r => r.ListarTodasAsync(false, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<Congregacao>());
 
-        var service = new AuthService(_mockUsuarioRepo.Object, _hasher, _config, _mockLogger.Object);
+        var service = new AuthService(_mockUsuarioRepo.Object, _mockCongregacaoRepo.Object, _hasher, _config, _mockLogger.Object);
 
         await service.InicializarAdminPadraoAsync();
 
         _mockUsuarioRepo.Verify(r => r.AdicionarAsync(
             It.Is<Usuario>(u => u.Email == "admin@agendapalestras.local" && u.Papel == "Admin"),
+            It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task RegistrarUsuarioAsync_ComDadosValidos_DeveCriarCongregacaoEUsuario()
+    {
+        _mockUsuarioRepo.Setup(r => r.ObterPorEmailAsync("novo@teste.com", It.IsAny<CancellationToken>()))
+            .ReturnsAsync((Usuario?)null);
+
+        var service = new AuthService(_mockUsuarioRepo.Object, _mockCongregacaoRepo.Object, _hasher, _config, _mockLogger.Object);
+
+        var dto = new RegistrarUsuarioDto(
+            "Novo Usuário",
+            "novo@teste.com",
+            "Senha@123",
+            "Minha Congregação",
+            "Circuito 1",
+            "Cidade Central",
+            "Rua das Flores, 123",
+            "https://maps.app.goo.gl/exemplo"
+        );
+
+        var autenticado = await service.RegistrarUsuarioAsync(dto);
+
+        Assert.NotNull(autenticado);
+        Assert.Equal("Novo Usuário", autenticado.Nome);
+        Assert.Equal("novo@teste.com", autenticado.Email);
+        Assert.Equal("Minha Congregação", autenticado.CongregacaoNome);
+
+        _mockCongregacaoRepo.Verify(r => r.AdicionarAsync(
+            It.Is<Congregacao>(c => c.Nome == "Minha Congregação" && c.Endereco == "Rua das Flores, 123"),
+            It.IsAny<CancellationToken>()), Times.Once);
+
+        _mockUsuarioRepo.Verify(r => r.AdicionarAsync(
+            It.Is<Usuario>(u => u.Email == "novo@teste.com" && u.Nome == "Novo Usuário"),
             It.IsAny<CancellationToken>()), Times.Once);
     }
 }

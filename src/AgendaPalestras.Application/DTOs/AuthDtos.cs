@@ -10,5 +10,20 @@ public record UsuarioAutenticadoDto(
     Guid Id,
     string Nome,
     string Email,
-    string Papel
+    string Papel,
+    Guid? CongregacaoId = null,
+    string? CongregacaoNome = null
+);
+
+public record RegistrarUsuarioDto(
+    string Nome,
+    string Email,
+    string Senha,
+    string NomeCongregacao,
+    string? Cidade = null,
+    string? Circuito = null,
+    string? Endereco = null,
+    string? LinkGoogleMaps = null,
+    string? DiasReuniao = null,
+    string? HorarioReuniao = null
 );

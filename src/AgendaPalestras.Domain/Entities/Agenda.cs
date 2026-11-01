@@ -68,6 +68,7 @@ public class Agenda : BaseEntity
 
         Status = StatusPalestra.Confirmado;
         DataResposta = DateTime.UtcNow;
+        MotivoCancelamentoOuRecusa = null;
     }
 
     public void Recusar(string? motivo = null)
@@ -118,6 +119,7 @@ public class Agenda : BaseEntity
         DataResposta = null;
         DataConviteEnviado = null;
         DataLembreteEnviado = null;
+        MotivoCancelamentoOuRecusa = null;
     }
 
     public void MarcarConviteEnviado(DateTime dataEnvio)

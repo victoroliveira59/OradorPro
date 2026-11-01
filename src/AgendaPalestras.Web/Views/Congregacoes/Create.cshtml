@@ -41,6 +41,17 @@
                         </div>
                     </div>
 
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label asp-for="Endereco" class="form-label">Endereço do Salão do Reino</label>
+                            <input asp-for="Endereco" class="form-control" placeholder="Ex: Rua das Flores, 123" />
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label asp-for="LinkGoogleMaps" class="form-label">Link do Google Maps</label>
+                            <input asp-for="LinkGoogleMaps" type="url" class="form-control" placeholder="https://maps.app.goo.gl/..." />
+                        </div>
+                    </div>
+
                     <div class="d-flex justify-content-between mt-4">
                         <a asp-action="Index" class="btn btn-outline-secondary">Cancelar</a>
                         <button type="submit" class="btn btn-primary">Salvar Congregação</button>

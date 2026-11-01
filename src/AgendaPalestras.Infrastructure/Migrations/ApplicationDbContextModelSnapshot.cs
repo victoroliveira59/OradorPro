@@ -140,10 +140,18 @@ namespace AgendaPalestras.Infrastructure.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
 
+                    b.Property<string>("Endereco")
+                        .HasMaxLength(250)
+                        .HasColumnType("character varying(250)");
+
                     b.Property<string>("HorarioReuniao")
                         .IsRequired()
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)");
+
+                    b.Property<string>("LinkGoogleMaps")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
 
                     b.Property<string>("Nome")
                         .IsRequired()
@@ -328,6 +336,9 @@ namespace AgendaPalestras.Infrastructure.Migrations
                     b.Property<DateTime?>("AtualizadoEm")
                         .HasColumnType("timestamp without time zone");
 
+                    b.Property<Guid?>("CongregacaoId")
+                        .HasColumnType("uuid");
+
                     b.Property<DateTime>("CriadoEm")
                         .HasColumnType("timestamp without time zone");
 
@@ -351,6 +362,8 @@ namespace AgendaPalestras.Infrastructure.Migrations
                         .HasColumnType("character varying(50)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("CongregacaoId");
 
                     b.HasIndex("Email")
                         .IsUnique();
@@ -423,6 +436,16 @@ namespace AgendaPalestras.Infrastructure.Migrations
                     b.Navigation("Discurso");
 
                     b.Navigation("Orador");
+                });
+
+            modelBuilder.Entity("AgendaPalestras.Domain.Entities.Usuario", b =>
+                {
+                    b.HasOne("AgendaPalestras.Domain.Entities.Congregacao", "Congregacao")
+                        .WithMany()
+                        .HasForeignKey("CongregacaoId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Congregacao");
                 });
 
             modelBuilder.Entity("AgendaPalestras.Domain.Entities.Congregacao", b =>

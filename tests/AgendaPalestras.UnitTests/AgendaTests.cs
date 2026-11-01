@@ -108,6 +108,36 @@ public class AgendaTests
         Assert.Equal(discurso2, agenda.DiscursoId);
         Assert.Equal(StatusPalestra.Pendente, agenda.Status);
         Assert.Null(agenda.DataResposta);
+        Assert.Null(agenda.MotivoCancelamentoOuRecusa);
+    }
+
+    [Fact]
+    public void Confirmar_QuandoEstavaRecusado_DeveAlterarStatusParaConfirmadoELimparMotivo()
+    {
+        var agenda = new Agenda(Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), DateTime.UtcNow.AddDays(5));
+        agenda.Recusar("Recusado pelo orador via WhatsApp");
+
+        Assert.Equal(StatusPalestra.Recusado, agenda.Status);
+        Assert.Equal("Recusado pelo orador via WhatsApp", agenda.MotivoCancelamentoOuRecusa);
+
+        agenda.Confirmar();
+
+        Assert.Equal(StatusPalestra.Confirmado, agenda.Status);
+        Assert.Null(agenda.MotivoCancelamentoOuRecusa);
+    }
+
+    [Fact]
+    public void Reagendar_QuandoEstavaRecusado_DeveResetarParaPendenteELimparMotivo()
+    {
+        var discurso1 = Guid.NewGuid();
+        var discurso2 = Guid.NewGuid();
+        var agenda = new Agenda(Guid.NewGuid(), Guid.NewGuid(), discurso1, DateTime.UtcNow.AddDays(5));
+        agenda.Recusar("Recusado pelo orador via WhatsApp");
+
+        agenda.Reagendar(DateTime.UtcNow.AddDays(10), discurso2);
+
+        Assert.Equal(StatusPalestra.Pendente, agenda.Status);
+        Assert.Null(agenda.MotivoCancelamentoOuRecusa);
     }
 
     [Fact]

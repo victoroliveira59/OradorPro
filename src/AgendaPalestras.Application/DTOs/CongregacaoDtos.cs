@@ -8,7 +8,9 @@ public record CongregacaoDto(
     string DiasReuniao,
     string HorarioReuniao,
     bool Ativo,
-    int TotalOradores
+    int TotalOradores,
+    string? Endereco = null,
+    string? LinkGoogleMaps = null
 );
 
 public record CriarCongregacaoDto(
@@ -16,7 +18,9 @@ public record CriarCongregacaoDto(
     string Cidade,
     string Circuito,
     string DiasReuniao,
-    string HorarioReuniao
+    string HorarioReuniao,
+    string? Endereco = null,
+    string? LinkGoogleMaps = null
 );
 
 public record AtualizarCongregacaoDto(
@@ -26,5 +30,7 @@ public record AtualizarCongregacaoDto(
     string Circuito,
     string DiasReuniao,
     string HorarioReuniao,
-    bool Ativo
+    bool Ativo,
+    string? Endereco = null,
+    string? LinkGoogleMaps = null
 );

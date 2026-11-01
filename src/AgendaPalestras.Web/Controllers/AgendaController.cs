@@ -31,8 +31,18 @@ public class AgendaController : Controller
         _whatsAppService = whatsAppService;
     }
 
+    private Guid? ObterCongregacaoIdUsuarioLogado()
+    {
+        var claim = User.FindFirst("CongregacaoId")?.Value;
+        if (Guid.TryParse(claim, out var id)) return id;
+        return null;
+    }
+
     public async Task<IActionResult> Index(int? ano, int? mes, Guid? congregacaoId, string modo = "calendario")
     {
+        var userCongId = ObterCongregacaoIdUsuarioLogado();
+        var filtroCongregacao = userCongId ?? congregacaoId;
+
         var dataReferencia = (ano.HasValue && mes.HasValue && mes.Value >= 1 && mes.Value <= 12)
             ? new DateTime(ano.Value, mes.Value, 1)
             : new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1);
@@ -58,8 +68,10 @@ public class AgendaController : Controller
         var inicioGradeUtc = DateTime.SpecifyKind(inicioGrade.Date, DateTimeKind.Utc);
         var fimGradeUtc = DateTime.SpecifyKind(fimGrade.Date.AddDays(1).AddSeconds(-1), DateTimeKind.Utc);
 
-        var agendas = await _agendaService.ObterPorPeriodoAsync(inicioGradeUtc, fimGradeUtc, congregacaoId);
-        var congregacoes = await _congregacaoService.ListarTodasAsync();
+        var agendas = await _agendaService.ObterPorPeriodoAsync(inicioGradeUtc, fimGradeUtc, filtroCongregacao);
+        var congregacoes = userCongId.HasValue
+            ? (await _congregacaoService.ObterPorIdAsync(userCongId.Value) is { } c ? new List<CongregacaoDto> { c } : new List<CongregacaoDto>())
+            : await _congregacaoService.ListarTodasAsync();
 
         var diasGrade = new List<AgendaDiaCalendarioDto>();
         for (var d = inicioGrade.Date; d <= fimGrade.Date; d = d.AddDays(1))
@@ -88,7 +100,7 @@ public class AgendaController : Controller
             Ano = anoAtual,
             Mes = mesAtual,
             NomeMesAno = $"{nomeMesCapitalizado} de {anoAtual}",
-            CongregacaoId = congregacaoId,
+            CongregacaoId = filtroCongregacao,
             ModoVisualizacao = modo,
             MesAnterior = primeiroDiaMes.AddMonths(-1),
             MesProximo = primeiroDiaMes.AddMonths(1),
@@ -102,7 +114,10 @@ public class AgendaController : Controller
 
     public async Task<IActionResult> Create(string? data, Guid? congregacaoId)
     {
-        await CarregarCombosAsync();
+        var userCongId = ObterCongregacaoIdUsuarioLogado();
+        var congIdFinal = userCongId ?? congregacaoId;
+
+        await CarregarCombosAsync(userCongId);
 
         DateTime dataInicial = DateTime.Today.AddDays(7).AddHours(19);
         if (!string.IsNullOrWhiteSpace(data) && DateTime.TryParse(data, out var parsedDate))
@@ -110,13 +125,19 @@ public class AgendaController : Controller
             dataInicial = parsedDate.Date.AddHours(19);
         }
 
-        return View(new CriarAgendaDto(congregacaoId ?? Guid.Empty, Guid.Empty, Guid.Empty, dataInicial));
+        return View(new CriarAgendaDto(congIdFinal ?? Guid.Empty, Guid.Empty, Guid.Empty, dataInicial));
     }
 
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Create(CriarAgendaDto dto)
     {
+        var userCongId = ObterCongregacaoIdUsuarioLogado();
+        if (userCongId.HasValue)
+        {
+            dto = dto with { CongregacaoId = userCongId.Value };
+        }
+
         try
         {
             var criada = await _agendaService.CriarAsync(dto);
@@ -141,7 +162,7 @@ public class AgendaController : Controller
             ModelState.AddModelError(string.Empty, ex.Message);
         }
 
-        await CarregarCombosAsync();
+        await CarregarCombosAsync(userCongId);
         return View(dto);
     }
 
@@ -268,9 +289,18 @@ public class AgendaController : Controller
         });
     }
 
-    private async Task CarregarCombosAsync()
+    private async Task CarregarCombosAsync(Guid? userCongId = null)
     {
-        ViewBag.Congregacoes = await _congregacaoService.ListarTodasAsync();
-        ViewBag.Oradores = (await _oradorService.ListarTodosAsync()).Where(o => o.Ativo).ToList();
+        if (userCongId.HasValue)
+        {
+            var minhaCong = await _congregacaoService.ObterPorIdAsync(userCongId.Value);
+            ViewBag.Congregacoes = minhaCong != null ? new List<CongregacaoDto> { minhaCong } : new List<CongregacaoDto>();
+            ViewBag.Oradores = (await _oradorService.ListarTodosAsync(userCongId.Value)).Where(o => o.Ativo).ToList();
+        }
+        else
+        {
+            ViewBag.Congregacoes = await _congregacaoService.ListarTodasAsync();
+            ViewBag.Oradores = (await _oradorService.ListarTodosAsync()).Where(o => o.Ativo).ToList();
+        }
     }
 }
