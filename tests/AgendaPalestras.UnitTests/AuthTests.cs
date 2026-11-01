@@ -151,6 +151,7 @@ public class AuthTests
         Assert.NotNull(autenticado);
         Assert.Equal("Novo Usuário", autenticado.Nome);
         Assert.Equal("novo@teste.com", autenticado.Email);
+        Assert.Equal("User", autenticado.Papel);
         Assert.Equal("Minha Congregação", autenticado.CongregacaoNome);
         Assert.True(convite.Usado);
 
@@ -161,7 +162,7 @@ public class AuthTests
             It.IsAny<CancellationToken>()), Times.Once);
 
         _mockUsuarioRepo.Verify(r => r.AdicionarAsync(
-            It.Is<Usuario>(u => u.Email == "novo@teste.com" && u.Nome == "Novo Usuário"),
+            It.Is<Usuario>(u => u.Email == "novo@teste.com" && u.Nome == "Novo Usuário" && u.Papel == "User"),
             It.IsAny<CancellationToken>()), Times.Once);
     }
 

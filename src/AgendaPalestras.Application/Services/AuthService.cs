@@ -117,7 +117,7 @@ public class AuthService : IAuthService
 
         // 2. Criar o Usuário vinculado à sua Congregação
         var hash = _passwordHasher.HashPassword(dto.Senha);
-        var novoUsuario = new Usuario(dto.Nome, dto.Email, hash, "Admin", congregacao.Id);
+        var novoUsuario = new Usuario(dto.Nome, dto.Email, hash, "User", congregacao.Id);
         await _usuarioRepository.AdicionarAsync(novoUsuario, cancellationToken);
 
         if (convite != null)

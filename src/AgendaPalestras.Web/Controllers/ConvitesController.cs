@@ -7,7 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace AgendaPalestras.Web.Controllers;
 
-[Authorize(Roles = "SuperAdmin,Admin")]
+[Authorize(Roles = "SuperAdmin")]
 public class ConvitesController : Controller
 {
     private readonly IConviteService _conviteService;
