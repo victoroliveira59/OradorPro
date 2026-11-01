@@ -42,6 +42,9 @@
                             <li class="nav-item">
                                 <a class="nav-link" asp-area="" asp-controller="WhatsApp" asp-action="Index"><i class="bi bi-whatsapp text-success"></i> WhatsApp</a>
                             </li>
+                        }
+                        @if (User.IsInRole("SuperAdmin"))
+                        {
                             <li class="nav-item">
                                 <a class="nav-link" asp-area="" asp-controller="Convites" asp-action="Index"><i class="bi bi-link-45deg text-warning"></i> Convites de Cadastro</a>
                             </li>
@@ -55,7 +58,7 @@
                                     <i class="bi bi-person-circle"></i> @User.Identity.Name
                                 </a>
                                 <ul class="dropdown-menu dropdown-menu-end shadow">
-                                    <li><span class="dropdown-item-text text-muted small"><i class="bi bi-shield-check"></i> Perfil: Admin</span></li>
+                                    <li><span class="dropdown-item-text text-muted small"><i class="bi bi-shield-check"></i> Perfil: @(User.IsInRole("SuperAdmin") ? "Super Admin" : (User.IsInRole("Admin") ? "Admin" : "Usuário"))</span></li>
                                     <li><hr class="dropdown-divider"></li>
                                     <li>
                                         <form asp-controller="Auth" asp-action="Logout" method="post" class="d-inline">
