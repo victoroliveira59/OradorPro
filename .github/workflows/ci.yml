@@ -13,6 +13,21 @@ jobs:
   build-and-test:
     runs-on: ubuntu-latest
 
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: agendapalestras
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5433:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
     steps:
     - name: Checkout Código
       uses: actions/checkout@v4
@@ -35,4 +50,11 @@ jobs:
       run: dotnet test tests/AgendaPalestras.ArchitectureTests/AgendaPalestras.ArchitectureTests.csproj -c Release --no-build --logger "console;verbosity=normal"
 
     - name: Executar Testes de Integração
+      env:
+        ConnectionStrings__DefaultConnection: "Host=localhost;Port=5433;Database=agendapalestras;Username=postgres;Password=postgres"
+        POSTGRES_HOST: "localhost"
+        POSTGRES_PORT: "5433"
+        POSTGRES_DB: "agendapalestras"
+        POSTGRES_USER: "postgres"
+        POSTGRES_PASSWORD: "postgres"
       run: dotnet test tests/AgendaPalestras.IntegrationTests/AgendaPalestras.IntegrationTests.csproj -c Release --no-build --logger "console;verbosity=normal"
