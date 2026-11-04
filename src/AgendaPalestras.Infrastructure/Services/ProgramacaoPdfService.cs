@@ -31,10 +31,11 @@ public class ProgramacaoPdfService : IProgramacaoPdfService
         {
             container.Page(page =>
             {
-                page.Size(PageSizes.A4.Landscape());
-                page.Margin(1.5f, Unit.Centimetre);
+                // Modo Retrato (Portrait) em folha A4 com margens otimizadas
+                page.Size(PageSizes.A4);
+                page.Margin(1.0f, Unit.Centimetre);
                 page.PageColor(Colors.White);
-                page.DefaultTextStyle(x => x.FontSize(10));
+                page.DefaultTextStyle(x => x.FontSize(9));
 
                 // Cabeçalho do Documento
                 page.Header().Column(col =>
@@ -44,47 +45,47 @@ public class ProgramacaoPdfService : IProgramacaoPdfService
                         row.RelativeItem().Column(headerCol =>
                         {
                             headerCol.Item().Text("PROGRAMAÇÃO DE REUNIÃO DE FIM DE SEMANA")
-                                .FontSize(18)
+                                .FontSize(15)
                                 .ExtraBold()
                                 .FontColor(Colors.Blue.Darken3);
 
                             headerCol.Item().Text(text =>
                             {
-                                text.Span("Congregação: ").Bold();
-                                text.Span(string.IsNullOrWhiteSpace(nomeCongregacao) ? "Geral / Todas" : nomeCongregacao).SemiBold();
-                                text.Span("   |   Mês de Referência: ").Bold();
-                                text.Span($"{mesFormatado} de {ano}").SemiBold();
+                                text.Span("Congregação: ").Bold().FontSize(9.5f);
+                                text.Span(string.IsNullOrWhiteSpace(nomeCongregacao) ? "Geral / Todas" : nomeCongregacao).SemiBold().FontSize(9.5f);
+                                text.Span("   |   Mês de Referência: ").Bold().FontSize(9.5f);
+                                text.Span($"{mesFormatado} de {ano}").SemiBold().FontSize(9.5f);
                             });
                         });
                     });
 
-                    col.Item().PaddingTop(5).LineHorizontal(1.5f).LineColor(Colors.Blue.Darken2);
-                    col.Item().PaddingBottom(10);
+                    col.Item().PaddingTop(4).LineHorizontal(1.5f).LineColor(Colors.Blue.Darken2);
+                    col.Item().PaddingBottom(8);
                 });
 
-                // Conteúdo Principal: Tabela de Programação
+                // Conteúdo Principal: Tabela de Programação em Formato Retrato
                 page.Content().Table(table =>
                 {
-                    // Definição das Colunas
+                    // Definição das Colunas para visualização retrato A4
                     table.ColumnsDefinition(columns =>
                     {
-                        columns.ConstantColumn(85);   // Data e Horário
-                        columns.RelativeColumn(3);    // Tema e Nº do Discurso
-                        columns.RelativeColumn(2.2f); // Orador e Congregação
-                        columns.RelativeColumn(1.8f); // Presidente
-                        columns.RelativeColumn(1.8f); // Leitor da Sentinela
-                        columns.RelativeColumn(1.8f); // Oração Final
+                        columns.ConstantColumn(75);   // Data e Horário
+                        columns.RelativeColumn(2.5f); // Discurso Público (Nº e Tema na frente)
+                        columns.RelativeColumn(2.0f); // Orador (Apenas Nome e Congregação)
+                        columns.RelativeColumn(1.3f); // Presidente
+                        columns.RelativeColumn(1.4f); // Leitor da Sentinela
+                        columns.RelativeColumn(1.4f); // Oração Final com asterisco
                     });
 
                     // Cabeçalho da Tabela
                     table.Header(header =>
                     {
-                        header.Cell().Background(Colors.Blue.Darken3).Padding(6).Text("Data / Horário").Bold().FontColor(Colors.White);
-                        header.Cell().Background(Colors.Blue.Darken3).Padding(6).Text("Discurso Público").Bold().FontColor(Colors.White);
-                        header.Cell().Background(Colors.Blue.Darken3).Padding(6).Text("Orador").Bold().FontColor(Colors.White);
-                        header.Cell().Background(Colors.Blue.Darken3).Padding(6).Text("Presidente").Bold().FontColor(Colors.White);
-                        header.Cell().Background(Colors.Blue.Darken3).Padding(6).Text("Leitor de A Sentinela").Bold().FontColor(Colors.White);
-                        header.Cell().Background(Colors.Blue.Darken3).Padding(6).Text("Oração Final").Bold().FontColor(Colors.White);
+                        header.Cell().Background(Colors.Blue.Darken3).Padding(5).Text("Data / Horário").Bold().FontSize(8.5f).FontColor(Colors.White);
+                        header.Cell().Background(Colors.Blue.Darken3).Padding(5).Text("Discurso Público").Bold().FontSize(8.5f).FontColor(Colors.White);
+                        header.Cell().Background(Colors.Blue.Darken3).Padding(5).Text("Orador").Bold().FontSize(8.5f).FontColor(Colors.White);
+                        header.Cell().Background(Colors.Blue.Darken3).Padding(5).Text("Presidente").Bold().FontSize(8.5f).FontColor(Colors.White);
+                        header.Cell().Background(Colors.Blue.Darken3).Padding(5).Text("Leitor de A Sentinela").Bold().FontSize(8.5f).FontColor(Colors.White);
+                        header.Cell().Background(Colors.Blue.Darken3).Padding(5).Text("Oração Final *").Bold().FontSize(8.5f).FontColor(Colors.White);
                     });
 
                     // Linhas da Tabela
@@ -100,72 +101,71 @@ public class ProgramacaoPdfService : IProgramacaoPdfService
                         {
                             var bgColor = index % 2 == 0 ? Colors.White : Colors.Grey.Lighten4;
 
-                            // Coluna Data / Hora
-                            table.Cell().Background(bgColor).BorderBottom(0.5f).BorderColor(Colors.Grey.Lighten2).Padding(6).Column(c =>
+                            // 1. Coluna Data / Hora
+                            table.Cell().Background(bgColor).BorderBottom(0.5f).BorderColor(Colors.Grey.Lighten2).Padding(5).Column(c =>
                             {
-                                c.Item().Text(a.DataHora.ToString("dd/MM/yyyy")).Bold().FontSize(10);
-                                c.Item().Text($"{a.DataHora:HH:mm} ({a.DataHora.ToString("dddd", cultura)})").FontSize(8.5f).FontColor(Colors.Grey.Darken1);
+                                c.Item().Text(a.DataHora.ToString("dd/MM/yyyy")).Bold().FontSize(8.5f);
+                                c.Item().Text($"{a.DataHora:HH:mm} ({a.DataHora.ToString("dddd", cultura)})").FontSize(7.5f).FontColor(Colors.Grey.Darken1);
                             });
 
-                            // Coluna Discurso
-                            table.Cell().Background(bgColor).BorderBottom(0.5f).BorderColor(Colors.Grey.Lighten2).Padding(6).Column(c =>
+                            // 2. Coluna Discurso: Número e Tema na frente
+                            table.Cell().Background(bgColor).BorderBottom(0.5f).BorderColor(Colors.Grey.Lighten2).Padding(5).Text(text =>
                             {
-                                c.Item().Text($"Nº {a.DiscursoNumero}").Bold().FontSize(9).FontColor(Colors.Blue.Darken2);
-                                c.Item().Text(a.DiscursoTema).SemiBold().FontSize(9.5f);
+                                text.Span($"Nº {a.DiscursoNumero} — ").Bold().FontSize(8.5f).FontColor(Colors.Blue.Darken3);
+                                text.Span(a.DiscursoTema).FontSize(8.5f);
                             });
 
-                            // Coluna Orador
-                            table.Cell().Background(bgColor).BorderBottom(0.5f).BorderColor(Colors.Grey.Lighten2).Padding(6).Column(c =>
+                            // 3. Coluna Orador: Apenas Nome e Congregação (sem telefone)
+                            table.Cell().Background(bgColor).BorderBottom(0.5f).BorderColor(Colors.Grey.Lighten2).Padding(5).Column(c =>
                             {
-                                c.Item().Text(a.OradorNome).Bold().FontSize(9.5f);
+                                c.Item().Text(a.OradorNome).Bold().FontSize(8.5f);
                                 if (!string.IsNullOrWhiteSpace(a.OradorCongregacaoOrigem))
                                 {
-                                    c.Item().Text($"Congr. {a.OradorCongregacaoOrigem}").FontSize(8.5f).FontColor(Colors.Grey.Darken2);
-                                }
-                                if (!string.IsNullOrWhiteSpace(a.OradorTelefone))
-                                {
-                                    c.Item().Text(a.OradorTelefone).FontSize(8).FontColor(Colors.Grey.Darken1);
+                                    c.Item().Text(a.OradorCongregacaoOrigem).FontSize(8f).FontColor(Colors.Grey.Darken2);
                                 }
                             });
 
-                            // Coluna Presidente
-                            table.Cell().Background(bgColor).BorderBottom(0.5f).BorderColor(Colors.Grey.Lighten2).Padding(6)
+                            // 4. Coluna Presidente
+                            table.Cell().Background(bgColor).BorderBottom(0.5f).BorderColor(Colors.Grey.Lighten2).Padding(5)
                                 .Text(string.IsNullOrWhiteSpace(a.PresidenteReuniao) ? "—" : a.PresidenteReuniao)
-                                .FontSize(9.5f);
+                                .FontSize(8.5f);
 
-                            // Coluna Leitor da Sentinela
-                            table.Cell().Background(bgColor).BorderBottom(0.5f).BorderColor(Colors.Grey.Lighten2).Padding(6)
+                            // 5. Coluna Leitor de A Sentinela
+                            table.Cell().Background(bgColor).BorderBottom(0.5f).BorderColor(Colors.Grey.Lighten2).Padding(5)
                                 .Text(string.IsNullOrWhiteSpace(a.LeitorSentinela) ? "—" : a.LeitorSentinela)
-                                .FontSize(9.5f);
+                                .FontSize(8.5f);
 
-                            // Coluna Oração Final
-                            table.Cell().Background(bgColor).BorderBottom(0.5f).BorderColor(Colors.Grey.Lighten2).Padding(6)
+                            // 6. Coluna Oração Final
+                            table.Cell().Background(bgColor).BorderBottom(0.5f).BorderColor(Colors.Grey.Lighten2).Padding(5)
                                 .Text(string.IsNullOrWhiteSpace(a.OracaoFinal) ? "—" : a.OracaoFinal)
-                                .FontSize(9.5f);
+                                .FontSize(8.5f);
 
                             index++;
                         }
                     }
                 });
 
-                // Rodapé
+                // Rodapé com Legenda do asterisco e numeração de páginas
                 page.Footer().Column(col =>
                 {
+                    col.Item().PaddingBottom(4).Text("* Em caso do orador não permanecer até o final da reunião.")
+                        .Italic().FontSize(8f).FontColor(Colors.Grey.Darken2);
+
                     col.Item().LineHorizontal(0.5f).LineColor(Colors.Grey.Lighten1);
-                    col.Item().PaddingTop(4).Row(row =>
+                    col.Item().PaddingTop(3).Row(row =>
                     {
                         row.RelativeItem().Text(text =>
                         {
-                            text.Span("Agenda de Palestras (OradorPro) — Gerado em: ").FontSize(8).FontColor(Colors.Grey.Darken1);
-                            text.Span(DateTime.Now.ToString("dd/MM/yyyy HH:mm")).FontSize(8).Bold().FontColor(Colors.Grey.Darken1);
+                            text.Span("Agenda de Palestras (OradorPro) — Gerado em: ").FontSize(7.5f).FontColor(Colors.Grey.Darken1);
+                            text.Span(DateTime.Now.ToString("dd/MM/yyyy HH:mm")).FontSize(7.5f).Bold().FontColor(Colors.Grey.Darken1);
                         });
 
                         row.RelativeItem().AlignRight().Text(text =>
                         {
-                            text.Span("Página ").FontSize(8).FontColor(Colors.Grey.Darken1);
-                            text.CurrentPageNumber().FontSize(8).FontColor(Colors.Grey.Darken1);
-                            text.Span(" de ").FontSize(8).FontColor(Colors.Grey.Darken1);
-                            text.TotalPages().FontSize(8).FontColor(Colors.Grey.Darken1);
+                            text.Span("Página ").FontSize(7.5f).FontColor(Colors.Grey.Darken1);
+                            text.CurrentPageNumber().FontSize(7.5f).FontColor(Colors.Grey.Darken1);
+                            text.Span(" de ").FontSize(7.5f).FontColor(Colors.Grey.Darken1);
+                            text.TotalPages().FontSize(7.5f).FontColor(Colors.Grey.Darken1);
                         });
                     });
                 });

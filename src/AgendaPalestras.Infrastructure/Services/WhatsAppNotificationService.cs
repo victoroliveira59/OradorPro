@@ -103,7 +103,7 @@ public class WhatsAppNotificationService : IWhatsAppNotificationService
                     $"📅 *Data:* {agenda.DataHora:dd/MM/yyyy (dddd)}\n" +
                     $"⏰ *Horário:* {agenda.DataHora:HH:mm}{enderecoLembrete}{mapsLembrete}\n" +
                     $"📖 *Tema:* Nº {agenda.Discurso.Numero} — {agenda.Discurso.Tema}\n\n" +
-                    $"Que tenha uma excelente reunião!";
+                    $"🎶 Poderia nos enviar o cântico escolhido? E se tiver mídias, pode nos enviar por aqui também.\n\n";
 
         var resultado = await EnviarTextoAsync(agenda.Orador.TelefoneWhatsapp, texto, agenda.Id, cancellationToken);
 

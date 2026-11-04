@@ -1,24 +1,24 @@
 # Workflow State — Agenda de Palestras
 
 - **Project:** Agenda de Palestras
-- **Current Phase:** 14 - Multi-Instâncias da Evolution API por Usuário
-- **Current Task:** T14.01 - Isolamento multi-tenant de instâncias da Evolution API, gestão pelo SuperAdmin e liberação condicional para usuários
+- **Current Phase:** 15 - Carga Oficial de Discursos Públicos (S-34)
+- **Current Task:** T15.01 - Extrair os 194 temas de discursos oficiais S-34, gerar script SQL com resolução de conflitos e executar carga no banco
 - **Workflow Status:** DONE
 - **Active Agent:** MAESTRO
 - **Correction Iteration:** 0/3
-- **Last Completed Task:** T14.01 - Isolamento multi-tenant de instâncias da Evolution API, gestão pelo SuperAdmin e liberação condicional para usuários
+- **Last Completed Task:** T15.01 - Extrair os 194 temas de discursos oficiais S-34, gerar script SQL com resolução de conflitos e executar carga no banco
 - **Blockers:** none
-- **Last Updated:** 2026-11-01 20:55 BRT
+- **Last Updated:** 2026-11-03 22:36 BRT
 
 ---
 
 ## Current Objective
-Permitir que múltiplos coordenadores utilizem suas próprias sessões do WhatsApp sem acesso à Evolution API nem à ApiKey global. O Super Admin cria e vincula a instância para cada usuário, e a tela de conexão com QR Code passa a ser liberada para o respectivo usuário.
+Carga oficial completa de todos os 194 discursos públicos (S-34) no PostgreSQL via script SQL idempotente, preservando acentuação UTF-8 e integridade referencial.
 
 ---
 
 ## Next Action
-Aguardando novas solicitações do usuário ou implantação em produção.
+Aguardando novas solicitações do usuário ou próximos passos.
 
 ---
 
