@@ -38,10 +38,13 @@
                         <li class="nav-item">
                             <a class="nav-link px-2 py-2" asp-area="" asp-controller="Discursos" asp-action="Index"><i class="bi bi-journal-text me-1 text-secondary"></i> Discursos</a>
                         </li>
-                        @if (User.IsInRole("Admin") || User.IsInRole("SuperAdmin"))
+                        @if (User.Identity?.IsAuthenticated == true)
                         {
                             <li class="nav-item">
-                                <a class="nav-link px-2 py-2" asp-area="" asp-controller="WhatsApp" asp-action="Index"><i class="bi bi-whatsapp text-success me-1"></i> WhatsApp</a>
+                                <a class="nav-link px-2 py-2" asp-area="" asp-controller="WhatsApp" asp-action="Index">
+                                    <i class="bi bi-whatsapp text-success me-1"></i>
+                                    @(User.IsInRole("SuperAdmin") ? "WhatsApp" : "Conectar WhatsApp")
+                                </a>
                             </li>
                         }
                         @if (User.IsInRole("SuperAdmin"))

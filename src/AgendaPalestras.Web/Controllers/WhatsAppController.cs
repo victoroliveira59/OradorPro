@@ -7,7 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace AgendaPalestras.Web.Controllers;
 
-[Authorize(Roles = "SuperAdmin,Admin")]
+[Authorize]
 public class WhatsAppController : Controller
 {
     private readonly IEvolutionApiService _evolutionApiService;
