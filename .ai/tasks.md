@@ -243,6 +243,20 @@
 | **T13.04** | Implementar responsividade de Programação, Cadastros (Oradores, Congregações, Discursos) e Convites | Engenheiro | T13.03 | `DONE` |
 | **T13.05** | Executar testes de responsividade, suite de regressão e relatório de conclusão | Tester / Revisor | T13.04 | `DONE` |
 
+---
 
+## Fase 14 — Multi-Instâncias da Evolution API por Usuário
+*Objetivo: Permitir que múltiplos coordenadores utilizem suas próprias sessões do WhatsApp sem acesso à Evolution API nem à ApiKey global. O Super Admin cria e vincula a instância para cada usuário, e a tela de conexão com QR Code passa a ser liberada para o respectivo usuário.*
 
+| ID | Título da Task | Responsável | Dependência | Status |
+| :--- | :--- | :--- | :--- | :--- |
+| **T14.01** | Isolamento multi-tenant de instâncias da Evolution API, gestão pelo SuperAdmin e liberação condicional para usuários | Engenheiro / Revisor | Fase 13 | `DONE` |
 
+---
+
+## Fase 15 — Carga Oficial de Discursos Públicos (S-34)
+*Objetivo: Efetuar a carga e cadastro completo de todos os 194 discursos públicos oficiais do catálogo S-34 no banco de dados PostgreSQL com idempotência.*
+
+| ID | Título da Task | Responsável | Dependência | Status |
+| :--- | :--- | :--- | :--- | :--- |
+| **T15.01** | Extrair os 194 temas de discursos oficiais S-34, gerar script SQL com resolução de conflitos e executar carga no banco | Engenheiro / Maestro | Fase 14 | `DONE` |

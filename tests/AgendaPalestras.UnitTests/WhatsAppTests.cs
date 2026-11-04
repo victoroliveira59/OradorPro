@@ -84,6 +84,10 @@ public class WhatsAppTests
         Assert.True(resultado.Sucesso);
         Assert.NotNull(agenda.DataLembreteEnviado);
         _mockAgendaRepo.Verify(r => r.AtualizarAsync(agenda, It.IsAny<CancellationToken>()), Times.Once);
+        _mockEvolutionApi.Verify(e => e.EnviarTextoAsync(
+            orador.TelefoneWhatsapp,
+            It.Is<string>(msg => msg.Contains("cântico") && msg.Contains("mídias")),
+            It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
