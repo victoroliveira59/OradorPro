@@ -29,3 +29,11 @@ Todos os critérios de aceite das tarefas das fases de desenvolvimento devem seg
 - [ ] **CA-WPP-02:** Dado o recebimento de webhook com resposta "1" originado do telefone do orador da palestra, Quando processado o evento, Então a palestra deve transicionar para status CONFIRMED e registrar o evento no histórico.
 - [ ] **CA-WPP-03:** Dado o recebimento repetido do mesmo payload de webhook (duplicação de rede), Quando processado pela segunda vez, Então o sistema deve reconhecer a idempotência e não alterar o estado nem enviar mensagens duplicadas.
 - [ ] **CA-WPP-04:** Dado o job diário de lembretes, Quando avaliar uma palestra que ocorre exatamente em 7 dias e cujo lembrete ainda não foi enviado, Então o lembrete deve ser enviado e marcado como SENT, impedindo reenvio posterior.
+
+### 2.4 Multi-Tenancy e Isolamento de Dados
+- [ ] **CA-ISO-01:** Dado um usuário regular autenticado (Admin/Coordenador), Quando acessar a listagem de congregações, Então o sistema deve retornar exclusivamente sua congregação associada e as congregações cadastradas por ele, sem exibir congregações de outros usuários.
+- [ ] **CA-ISO-02:** Dado um usuário regular autenticado, Quando tentar editar ou alterar status de uma congregação cadastrada por outro usuário, Então o sistema deve bloquear a operação retornando 404 Não Encontrado ou 403 Acesso Negado.
+- [ ] **CA-ISO-03:** Dado um usuário regular autenticado, Quando acessar a listagem ou combos de oradores, Então o sistema deve retornar exclusivamente oradores de sua própria congregação ou criados por ele, sem exibir oradores pertencentes a outras congregações de outros usuários.
+- [ ] **CA-ISO-04:** Dado um usuário regular autenticado, Quando tentar acessar ou editar um orador pertencente a outro usuário/congregação, Então o sistema deve bloquear a operação com 404 ou 403.
+- [ ] **CA-ISO-05:** Dado um usuário regular autenticado, Quando acessar a Agenda ou Programação, Então o sistema deve filtrar as reuniões exclusivamente pela sua congregação de vínculo (`CongregacaoId`), impedindo manipulação de eventos de outras congregações.
+- [ ] **CA-ISO-06:** Dado um usuário autenticado como SuperAdmin, Quando acessar Congregações, Oradores, Agenda ou Programação, Então o sistema deve exibir visão global irrestrita com acesso a todos os registros de todos os usuários.

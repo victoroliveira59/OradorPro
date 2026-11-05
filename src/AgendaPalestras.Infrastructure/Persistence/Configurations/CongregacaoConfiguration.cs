@@ -16,8 +16,12 @@ public class CongregacaoConfiguration : IEntityTypeConfiguration<Congregacao>
             .IsRequired()
             .HasMaxLength(150);
 
-        builder.HasIndex(c => c.Nome)
-            .IsUnique();
+        builder.Property(c => c.UsuarioCriadorId)
+            .IsRequired(false);
+
+        builder.HasIndex(c => c.UsuarioCriadorId);
+
+        builder.HasIndex(c => c.Nome);
 
         builder.Property(c => c.Cidade)
             .HasMaxLength(100);

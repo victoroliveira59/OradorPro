@@ -7,6 +7,7 @@ public class Orador : BaseEntity
 {
     public Guid CongregacaoId { get; private set; }
     public Congregacao Congregacao { get; private set; } = null!;
+    public Guid? UsuarioCriadorId { get; private set; }
 
     public string Nome { get; private set; } = string.Empty;
     public string TelefoneWhatsapp { get; private set; } = string.Empty;
@@ -18,7 +19,7 @@ public class Orador : BaseEntity
 
     protected Orador() { }
 
-    public Orador(Guid congregacaoId, string nome, string telefoneWhatsapp, string email = "")
+    public Orador(Guid congregacaoId, string nome, string telefoneWhatsapp, string email = "", Guid? usuarioCriadorId = null)
     {
         if (congregacaoId == Guid.Empty)
             throw new DomainException("Congregação de origem é obrigatória para o orador.");
@@ -31,6 +32,7 @@ public class Orador : BaseEntity
         Nome = nome.Trim();
         TelefoneWhatsapp = FormatarTelefone(telefoneWhatsapp);
         Email = (email ?? string.Empty).Trim().ToLowerInvariant();
+        UsuarioCriadorId = usuarioCriadorId;
         Ativo = true;
     }
 

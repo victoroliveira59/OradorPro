@@ -260,3 +260,14 @@
 | ID | Título da Task | Responsável | Dependência | Status |
 | :--- | :--- | :--- | :--- | :--- |
 | **T15.01** | Extrair os 194 temas de discursos oficiais S-34, gerar script SQL com resolução de conflitos e executar carga no banco | Engenheiro / Maestro | Fase 14 | `DONE` |
+
+---
+
+## Fase 16 — Isolamento de Dados por Usuário e Congregação (Multi-Tenancy)
+*Objetivo: Garantir que cada usuário gerencie exclusivamente suas próprias informações (sua congregação, congregações cadastradas por ele, seus oradores e sua agenda), mantendo o catálogo oficial de discursos público e o SuperAdmin com visão global.*
+
+| ID | Título da Task | Responsável | Dependência | Status |
+| :--- | :--- | :--- | :--- | :--- |
+| **T16.01** | Especificar regras de isolamento multi-tenant, escopo de visibilidade e critérios de aceite | Analista | Fase 15 | `DONE` |
+| **T16.02** | Implementar filtros de isolamento por usuário/congregação em Congregações, Oradores e Agenda | Engenheiro | T16.01 | `DONE` |
+| **T16.03** | Criar testes automatizados de isolamento de dados, validar regressão e documentar evidências | Tester / Revisor | T16.02 | `DONE` |

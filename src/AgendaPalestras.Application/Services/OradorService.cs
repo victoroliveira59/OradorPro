@@ -9,6 +9,7 @@ namespace AgendaPalestras.Application.Services;
 public interface IOradorService
 {
     Task<List<OradorDto>> ListarTodosAsync(Guid? congregacaoId = null, bool apenasAtivos = false, CancellationToken cancellationToken = default);
+    Task<List<OradorDto>> ListarPorUsuarioAsync(Guid usuarioId, Guid? congregacaoId, bool ehSuperAdmin, Guid? filtroCongregacaoId = null, bool apenasAtivos = false, CancellationToken cancellationToken = default);
     Task<OradorDto?> ObterPorIdAsync(Guid id, CancellationToken cancellationToken = default);
     Task<OradorDto> CriarAsync(CriarOradorDto dto, CancellationToken cancellationToken = default);
     Task AtualizarAsync(AtualizarOradorDto dto, CancellationToken cancellationToken = default);
@@ -42,6 +43,12 @@ public class OradorService : IOradorService
         return lista.Select(MapToDto).ToList();
     }
 
+    public async Task<List<OradorDto>> ListarPorUsuarioAsync(Guid usuarioId, Guid? congregacaoId, bool ehSuperAdmin, Guid? filtroCongregacaoId = null, bool apenasAtivos = false, CancellationToken cancellationToken = default)
+    {
+        var lista = await _oradorRepository.ListarPorUsuarioAsync(usuarioId, congregacaoId, ehSuperAdmin, filtroCongregacaoId, apenasAtivos, cancellationToken);
+        return lista.Select(MapToDto).ToList();
+    }
+
     public async Task<OradorDto?> ObterPorIdAsync(Guid id, CancellationToken cancellationToken = default)
     {
         var entity = await _oradorRepository.ObterPorIdAsync(id, incluirRepertorio: true, cancellationToken);
@@ -69,7 +76,7 @@ public class OradorService : IOradorService
             }
             else
             {
-                var novaCong = new Congregacao(nomeLimpo, "", "", "", "");
+                var novaCong = new Congregacao(nomeLimpo, "", "", "", "", dto.UsuarioCriadorId);
                 await _congregacaoRepository.AdicionarAsync(novaCong, cancellationToken);
                 congregacaoIdFinal = novaCong.Id;
                 congregacaoNome = novaCong.Nome;
@@ -82,7 +89,7 @@ public class OradorService : IOradorService
             congregacaoNome = congregacao.Nome;
         }
 
-        var entity = new Orador(congregacaoIdFinal, dto.Nome, dto.TelefoneWhatsapp, dto.Email);
+        var entity = new Orador(congregacaoIdFinal, dto.Nome, dto.TelefoneWhatsapp, dto.Email, dto.UsuarioCriadorId);
 
         if (dto.DiscursosIniciaisIds != null && dto.DiscursosIniciaisIds.Count > 0)
         {
@@ -155,7 +162,8 @@ public class OradorService : IOradorService
             o.TelefoneWhatsapp,
             o.Email,
             o.Ativo,
-            repertorio
+            repertorio,
+            o.UsuarioCriadorId
         );
     }
 }

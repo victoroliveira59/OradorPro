@@ -163,8 +163,9 @@ namespace AgendaPalestras.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("Nome")
-                        .IsUnique();
+                    b.HasIndex("Nome");
+
+                    b.HasIndex("UsuarioCriadorId");
 
                     b.ToTable("Congregacoes", (string)null);
                 });
@@ -337,9 +338,14 @@ namespace AgendaPalestras.Infrastructure.Migrations
                         .HasMaxLength(20)
                         .HasColumnType("character varying(20)");
 
+                    b.Property<Guid?>("UsuarioCriadorId")
+                        .HasColumnType("uuid");
+
                     b.HasKey("Id");
 
                     b.HasIndex("CongregacaoId");
+
+                    b.HasIndex("UsuarioCriadorId");
 
                     b.ToTable("Oradores", (string)null);
                 });

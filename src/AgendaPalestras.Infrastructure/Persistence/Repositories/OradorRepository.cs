@@ -46,6 +46,37 @@ public class OradorRepository : IOradorRepository
         return await query.OrderBy(o => o.Nome).ToListAsync(cancellationToken);
     }
 
+    public async Task<List<Orador>> ListarPorUsuarioAsync(
+        Guid usuarioId,
+        Guid? congregacaoId,
+        bool ehSuperAdmin,
+        Guid? filtroCongregacaoId = null,
+        bool apenasAtivos = false,
+        CancellationToken cancellationToken = default)
+    {
+        var query = _context.Oradores
+            .Include(o => o.Congregacao)
+            .Include(o => o.OradorDiscursos)
+            .ThenInclude(od => od.Discurso)
+            .AsNoTracking();
+
+        if (!ehSuperAdmin)
+        {
+            query = query.Where(o =>
+                (congregacaoId.HasValue && o.CongregacaoId == congregacaoId.Value) ||
+                o.UsuarioCriadorId == usuarioId ||
+                (o.Congregacao != null && o.Congregacao.UsuarioCriadorId == usuarioId));
+        }
+
+        if (filtroCongregacaoId.HasValue)
+            query = query.Where(o => o.CongregacaoId == filtroCongregacaoId.Value);
+
+        if (apenasAtivos)
+            query = query.Where(o => o.Ativo);
+
+        return await query.OrderBy(o => o.Nome).ToListAsync(cancellationToken);
+    }
+
     public async Task AdicionarAsync(Orador orador, CancellationToken cancellationToken = default)
     {
         await _context.Oradores.AddAsync(orador, cancellationToken);

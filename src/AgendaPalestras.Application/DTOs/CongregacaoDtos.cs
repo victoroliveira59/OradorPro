@@ -10,7 +10,8 @@ public record CongregacaoDto(
     bool Ativo,
     int TotalOradores,
     string? Endereco = null,
-    string? LinkGoogleMaps = null
+    string? LinkGoogleMaps = null,
+    Guid? UsuarioCriadorId = null
 );
 
 public record CriarCongregacaoDto(

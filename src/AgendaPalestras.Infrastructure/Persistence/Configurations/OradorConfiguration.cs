@@ -29,6 +29,11 @@ public class OradorConfiguration : IEntityTypeConfiguration<Orador>
         builder.Property(o => o.CriadoEm)
             .IsRequired();
 
+        builder.Property(o => o.UsuarioCriadorId)
+            .IsRequired(false);
+
+        builder.HasIndex(o => o.UsuarioCriadorId);
+
         builder.HasOne(o => o.Congregacao)
             .WithMany(c => c.Oradores)
             .HasForeignKey(o => o.CongregacaoId)

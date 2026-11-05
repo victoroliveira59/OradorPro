@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Security.Claims;
 using AgendaPalestras.Application.DTOs;
 using AgendaPalestras.Application.Services;
 using AgendaPalestras.Web.Models;
@@ -24,6 +25,13 @@ public class ProgramacaoController : Controller
         _pdfService = pdfService;
     }
 
+    private Guid ObterUsuarioIdLogado()
+    {
+        var claim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (Guid.TryParse(claim, out var id)) return id;
+        return Guid.Empty;
+    }
+
     private Guid? ObterCongregacaoIdUsuarioLogado()
     {
         var claim = User.FindFirst("CongregacaoId")?.Value;
@@ -31,11 +39,16 @@ public class ProgramacaoController : Controller
         return null;
     }
 
+    private bool EhSuperAdmin() => User.IsInRole("SuperAdmin");
+
     [HttpGet]
     public async Task<IActionResult> Index(int? ano, int? mes, Guid? congregacaoId)
     {
+        var usuarioId = ObterUsuarioIdLogado();
         var userCongId = ObterCongregacaoIdUsuarioLogado();
-        congregacaoId = congregacaoId ?? userCongId;
+        var ehSuperAdmin = EhSuperAdmin();
+
+        congregacaoId = ehSuperAdmin ? (congregacaoId ?? userCongId) : userCongId;
 
         var dataReferencia = (ano.HasValue && mes.HasValue && mes.Value >= 1 && mes.Value <= 12)
             ? new DateTime(ano.Value, mes.Value, 1)
@@ -50,7 +63,7 @@ public class ProgramacaoController : Controller
         var inicioMesUtc = DateTime.SpecifyKind(primeiroDiaMes.Date, DateTimeKind.Utc);
         var fimMesUtc = DateTime.SpecifyKind(ultimoDiaMes.Date.AddDays(1).AddSeconds(-1), DateTimeKind.Utc);
 
-        var congregacoes = await _congregacaoService.ListarTodasAsync();
+        var congregacoes = await _congregacaoService.ListarPorUsuarioAsync(usuarioId, userCongId, ehSuperAdmin, apenasAtivas: true);
 
         if (!congregacaoId.HasValue && congregacoes.Count > 0)
         {
@@ -98,6 +111,14 @@ public class ProgramacaoController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Salvar(SalvarProgramacaoReuniaoInputModel model)
     {
+        var userCongId = ObterCongregacaoIdUsuarioLogado();
+        var ehSuperAdmin = EhSuperAdmin();
+
+        if (!ehSuperAdmin && model.CongregacaoId.HasValue && userCongId.HasValue && model.CongregacaoId.Value != userCongId.Value)
+        {
+            return Forbid();
+        }
+
         if (model.Designacoes != null && model.Designacoes.Count > 0)
         {
             var dtos = model.Designacoes.Select(d => new AtualizarDesignacoesReuniaoDto(
@@ -111,7 +132,8 @@ public class ProgramacaoController : Controller
             TempData["MensagemSucesso"] = "Designações da programação salvas com sucesso!";
         }
 
-        return RedirectToAction(nameof(Index), new { ano = model.Ano, mes = model.Mes, congregacaoId = model.CongregacaoId });
+        var congIdRedirect = ehSuperAdmin ? model.CongregacaoId : userCongId;
+        return RedirectToAction(nameof(Index), new { ano = model.Ano, mes = model.Mes, congregacaoId = congIdRedirect });
     }
 
     [HttpGet]
@@ -127,10 +149,13 @@ public class ProgramacaoController : Controller
         var inicioMesUtc = DateTime.SpecifyKind(primeiroDiaMes.Date, DateTimeKind.Utc);
         var fimMesUtc = DateTime.SpecifyKind(ultimoDiaMes.Date.AddDays(1).AddSeconds(-1), DateTimeKind.Utc);
 
+        var usuarioId = ObterUsuarioIdLogado();
         var userCongId = ObterCongregacaoIdUsuarioLogado();
-        congregacaoId = congregacaoId ?? userCongId;
+        var ehSuperAdmin = EhSuperAdmin();
 
-        var congregacoes = await _congregacaoService.ListarTodasAsync();
+        congregacaoId = ehSuperAdmin ? (congregacaoId ?? userCongId) : userCongId;
+
+        var congregacoes = await _congregacaoService.ListarPorUsuarioAsync(usuarioId, userCongId, ehSuperAdmin, apenasAtivas: true);
 
         if (!congregacaoId.HasValue && congregacoes.Count > 0)
         {

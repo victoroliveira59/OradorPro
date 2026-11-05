@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using AgendaPalestras.Application.DTOs;
 using AgendaPalestras.Application.Services;
 using AgendaPalestras.Domain.Exceptions;
@@ -17,6 +18,13 @@ public class CongregacoesController : Controller
         _service = service;
     }
 
+    private Guid ObterUsuarioIdLogado()
+    {
+        var claim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (Guid.TryParse(claim, out var id)) return id;
+        return Guid.Empty;
+    }
+
     private Guid? ObterCongregacaoIdUsuarioLogado()
     {
         var claim = User.FindFirst("CongregacaoId")?.Value;
@@ -24,9 +32,23 @@ public class CongregacoesController : Controller
         return null;
     }
 
+    private bool EhSuperAdmin() => User.IsInRole("SuperAdmin");
+
+    private bool PodeGerenciarCongregacao(CongregacaoDto congregacao)
+    {
+        if (EhSuperAdmin()) return true;
+        var usuarioId = ObterUsuarioIdLogado();
+        var userCongId = ObterCongregacaoIdUsuarioLogado();
+        return (userCongId.HasValue && congregacao.Id == userCongId.Value) ||
+               (congregacao.UsuarioCriadorId.HasValue && congregacao.UsuarioCriadorId.Value == usuarioId);
+    }
+
     public async Task<IActionResult> Index()
     {
-        var congregacoes = await _service.ListarTodasAsync();
+        var congregacoes = await _service.ListarPorUsuarioAsync(
+            ObterUsuarioIdLogado(),
+            ObterCongregacaoIdUsuarioLogado(),
+            EhSuperAdmin());
         return View(congregacoes);
     }
 
@@ -41,7 +63,7 @@ public class CongregacoesController : Controller
     {
         try
         {
-            await _service.CriarAsync(dto);
+            await _service.CriarAsync(dto, ObterUsuarioIdLogado());
             TempData["Success"] = "Congregação cadastrada com sucesso!";
             return RedirectToAction(nameof(Index));
         }
@@ -60,14 +82,13 @@ public class CongregacoesController : Controller
 
     public async Task<IActionResult> Edit(Guid id)
     {
-        var userCongId = ObterCongregacaoIdUsuarioLogado();
-        if (userCongId.HasValue && userCongId.Value != id)
-        {
-            return RedirectToAction(nameof(Edit), new { id = userCongId.Value });
-        }
-
         var c = await _service.ObterPorIdAsync(id);
         if (c == null) return NotFound();
+
+        if (!PodeGerenciarCongregacao(c))
+        {
+            return Forbid();
+        }
 
         var dto = new AtualizarCongregacaoDto(c.Id, c.Nome, c.Cidade, c.Circuito, c.DiasReuniao, c.HorarioReuniao, c.Ativo, c.Endereco, c.LinkGoogleMaps);
         return View(dto);
@@ -77,6 +98,14 @@ public class CongregacoesController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Edit(AtualizarCongregacaoDto dto)
     {
+        var c = await _service.ObterPorIdAsync(dto.Id);
+        if (c == null) return NotFound();
+
+        if (!PodeGerenciarCongregacao(c))
+        {
+            return Forbid();
+        }
+
         try
         {
             await _service.AtualizarAsync(dto);
@@ -94,6 +123,14 @@ public class CongregacoesController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> AlternarStatus(Guid id)
     {
+        var c = await _service.ObterPorIdAsync(id);
+        if (c == null) return NotFound();
+
+        if (!PodeGerenciarCongregacao(c))
+        {
+            return Forbid();
+        }
+
         await _service.AlternarStatusAsync(id);
         return RedirectToAction(nameof(Index));
     }

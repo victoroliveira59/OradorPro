@@ -8,7 +8,8 @@ public record OradorDto(
     string TelefoneWhatsapp,
     string Email,
     bool Ativo,
-    List<DiscursoDto> Repertorio
+    List<DiscursoDto> Repertorio,
+    Guid? UsuarioCriadorId = null
 );
 
 public record CriarOradorDto(
@@ -17,7 +18,8 @@ public record CriarOradorDto(
     string TelefoneWhatsapp,
     string Email,
     List<Guid>? DiscursosIniciaisIds = null,
-    string? NovaCongregacaoNome = null
+    string? NovaCongregacaoNome = null,
+    Guid? UsuarioCriadorId = null
 );
 
 public record AtualizarOradorDto(
