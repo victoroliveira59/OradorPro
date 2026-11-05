@@ -21,6 +21,7 @@
 | **RF-10** | Lembrete Automático | Job em background para envio de lembrete 7 dias antes do evento. |
 | **RF-11** | Histórico de Mensagens | Registro auditável de todas as mensagens enviadas e recebidas com timestamps e status. |
 | **RF-12** | Dashboard Operacional | Painel com próximas palestras, confirmações pendentes e alertas de recusa. |
+| **RF-13** | Isolamento Multi-Tenant por Congregação | Cada usuário visualiza e gerencia exclusivamente sua própria congregação, congregações cadastradas por ele, seus oradores e sua agenda, mantendo o catálogo de discursos público e SuperAdmin com visão global. |
 
 ---
 

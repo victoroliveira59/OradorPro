@@ -34,3 +34,13 @@
 - **RN-10 (Janela de Lembrete de 7 Dias):** Exatamente sete dias antes da data da palestra, um job em background deve avaliar a necessidade de disparo de mensagem de lembrete.
 - **RN-11 (Prevenção de Duplicidade de Envios):** O sistema deve garantir idempotência estrita: é expressamente proibido enviar convites duplicados ou lembretes repetidos para o mesmo evento.
 - **RN-12 (Auditoria e Histórico de Comunicação):** Toda interação (convite enviado, resposta recebida, webhook com erro, lembrete emitido) deve ser gravada em tabela de histórico com payload, data/hora e status.
+
+---
+
+## 4. Isolamento Multi-Tenant por Congregação e Usuário
+
+- **RN-14 (Visibilidade e Gestão de Congregações):** O usuário regular (Admin/Coordenador) só visualiza, lista e gerencia a SUA própria congregação (vinculada ao seu usuário via `Usuario.CongregacaoId`) e congregações adicionais cadastradas por ele (`c.UsuarioCriadorId == usuario.Id`). Ele não visualiza nem altera congregações cadastradas por outros usuários.
+- **RN-15 (Isolamento de Oradores):** O usuário regular só visualiza, lista e gerencia os oradores pertencentes à sua congregação ou criados por ele (`o.CongregacaoId == usuario.CongregacaoId || o.UsuarioCriadorId == usuario.Id || o.Congregacao.UsuarioCriadorId == usuario.Id`). Oradores pertencentes a outras congregações e criados por outros usuários ficam totalmente inacessíveis.
+- **RN-16 (Agenda e Programação Restritas à Congregação):** O usuário regular só visualiza, cria, edita, cancela palestras e define designações de reunião para a congregação à qual pertence (`Agenda.CongregacaoId == usuario.CongregacaoId`). Tentativas de acessar ID de palestras de outra congregação devem ser bloqueadas com `404 Not Found` ou `403 Forbidden`.
+- **RN-17 (Catálogo Oficial Público de Discursos S-34):** O catálogo de 194 temas de discursos públicos (S-34) é global e compartilhado para todos os usuários consultarem e utilizarem no repertório dos oradores e agendamentos. Apenas o perfil SuperAdmin possui permissão para incluir ou editar temas no catálogo oficial.
+- **RN-18 (Visão Global do SuperAdmin):** O SuperAdmin possui privilégio irrestrito de visualizar e gerenciar congregações, oradores, agendas, programações e instâncias de WhatsApp de todos os usuários da plataforma.

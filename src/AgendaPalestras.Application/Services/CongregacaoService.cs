@@ -9,6 +9,7 @@ namespace AgendaPalestras.Application.Services;
 public interface ICongregacaoService
 {
     Task<List<CongregacaoDto>> ListarTodasAsync(bool apenasAtivas = false, CancellationToken cancellationToken = default);
+    Task<List<CongregacaoDto>> ListarPorUsuarioAsync(Guid usuarioId, Guid? congregacaoId, bool ehSuperAdmin, bool apenasAtivas = false, CancellationToken cancellationToken = default);
     Task<CongregacaoDto?> ObterPorIdAsync(Guid id, CancellationToken cancellationToken = default);
     Task<CongregacaoDto> CriarAsync(CriarCongregacaoDto dto, Guid? usuarioCriadorId = null, CancellationToken cancellationToken = default);
     Task AtualizarAsync(AtualizarCongregacaoDto dto, CancellationToken cancellationToken = default);
@@ -30,6 +31,12 @@ public class CongregacaoService : ICongregacaoService
     public async Task<List<CongregacaoDto>> ListarTodasAsync(bool apenasAtivas = false, CancellationToken cancellationToken = default)
     {
         var lista = await _repository.ListarTodasAsync(apenasAtivas, cancellationToken);
+        return lista.Select(MapToDto).ToList();
+    }
+
+    public async Task<List<CongregacaoDto>> ListarPorUsuarioAsync(Guid usuarioId, Guid? congregacaoId, bool ehSuperAdmin, bool apenasAtivas = false, CancellationToken cancellationToken = default)
+    {
+        var lista = await _repository.ListarPorUsuarioAsync(usuarioId, congregacaoId, ehSuperAdmin, apenasAtivas, cancellationToken);
         return lista.Select(MapToDto).ToList();
     }
 
@@ -82,5 +89,5 @@ public class CongregacaoService : ICongregacaoService
     }
 
     private static CongregacaoDto MapToDto(Congregacao c) =>
-        new(c.Id, c.Nome, c.Cidade, c.Circuito, c.DiasReuniao, c.HorarioReuniao, c.Ativo, c.Oradores.Count, c.Endereco, c.LinkGoogleMaps);
+        new(c.Id, c.Nome, c.Cidade, c.Circuito, c.DiasReuniao, c.HorarioReuniao, c.Ativo, c.Oradores.Count, c.Endereco, c.LinkGoogleMaps, c.UsuarioCriadorId);
 }

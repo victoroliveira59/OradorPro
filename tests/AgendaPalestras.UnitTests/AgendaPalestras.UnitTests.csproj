@@ -17,6 +17,7 @@
     <PackageReference Include="xunit.runner.visualstudio" Version="2.5.3" />
     <PackageReference Include="Microsoft.Extensions.Configuration" Version="8.0.0" />
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="8.0.0" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="8.0.8" />
   </ItemGroup>
 
   <ItemGroup>
@@ -27,6 +28,7 @@
     <ProjectReference Include="..\..\src\AgendaPalestras.Domain\AgendaPalestras.Domain.csproj" />
     <ProjectReference Include="..\..\src\AgendaPalestras.Application\AgendaPalestras.Application.csproj" />
     <ProjectReference Include="..\..\src\AgendaPalestras.Infrastructure\AgendaPalestras.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\AgendaPalestras.Web\AgendaPalestras.Web.csproj" />
   </ItemGroup>
 
 </Project>

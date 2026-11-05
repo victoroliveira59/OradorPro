@@ -1,19 +1,19 @@
 # Workflow State — Agenda de Palestras
 
 - **Project:** Agenda de Palestras
-- **Current Phase:** 15 - Carga Oficial de Discursos Públicos (S-34)
-- **Current Task:** T15.01 - Extrair os 194 temas de discursos oficiais S-34, gerar script SQL com resolução de conflitos e executar carga no banco
+- **Current Phase:** 16 - Isolamento de Dados por Usuário e Congregação (Multi-Tenancy)
+- **Current Task:** T16.03 - Criar testes automatizados de isolamento de dados, validar regressão e documentar evidências
 - **Workflow Status:** DONE
 - **Active Agent:** MAESTRO
 - **Correction Iteration:** 0/3
-- **Last Completed Task:** T15.01 - Extrair os 194 temas de discursos oficiais S-34, gerar script SQL com resolução de conflitos e executar carga no banco
+- **Last Completed Task:** T16.03 - Criar testes automatizados de isolamento de dados, validar regressão e documentar evidências
 - **Blockers:** none
-- **Last Updated:** 2026-11-03 22:36 BRT
+- **Last Updated:** 2026-11-05 08:55 BRT
 
 ---
 
 ## Current Objective
-Carga oficial completa de todos os 194 discursos públicos (S-34) no PostgreSQL via script SQL idempotente, preservando acentuação UTF-8 e integridade referencial.
+Isolamento multi-tenant por congregação e usuário implementado e validado com 100% de sucesso. Cada usuário gerencia exclusivamente suas próprias informações (sua congregação, suas inclusões de congregações, seus oradores e sua agenda). O catálogo oficial de 194 temas (S-34) permanece global e o SuperAdmin possui visão total.
 
 ---
 

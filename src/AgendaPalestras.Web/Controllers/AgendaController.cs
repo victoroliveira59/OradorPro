@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using AgendaPalestras.Application.DTOs;
 using AgendaPalestras.Application.Services;
 using AgendaPalestras.Domain.Exceptions;
@@ -31,6 +32,13 @@ public class AgendaController : Controller
         _whatsAppService = whatsAppService;
     }
 
+    private Guid ObterUsuarioIdLogado()
+    {
+        var claim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (Guid.TryParse(claim, out var id)) return id;
+        return Guid.Empty;
+    }
+
     private Guid? ObterCongregacaoIdUsuarioLogado()
     {
         var claim = User.FindFirst("CongregacaoId")?.Value;
@@ -38,10 +46,21 @@ public class AgendaController : Controller
         return null;
     }
 
+    private bool EhSuperAdmin() => User.IsInRole("SuperAdmin");
+
+    private bool PodeAcessarAgenda(AgendaDto agenda)
+    {
+        if (EhSuperAdmin()) return true;
+        var userCongId = ObterCongregacaoIdUsuarioLogado();
+        return userCongId.HasValue && agenda.CongregacaoId == userCongId.Value;
+    }
+
     public async Task<IActionResult> Index(int? ano, int? mes, Guid? congregacaoId, string modo = "calendario")
     {
+        var usuarioId = ObterUsuarioIdLogado();
         var userCongId = ObterCongregacaoIdUsuarioLogado();
-        var filtroCongregacao = userCongId ?? congregacaoId;
+        var ehSuperAdmin = EhSuperAdmin();
+        var filtroCongregacao = ehSuperAdmin ? congregacaoId : userCongId;
 
         var dataReferencia = (ano.HasValue && mes.HasValue && mes.Value >= 1 && mes.Value <= 12)
             ? new DateTime(ano.Value, mes.Value, 1)
@@ -69,7 +88,7 @@ public class AgendaController : Controller
         var fimGradeUtc = DateTime.SpecifyKind(fimGrade.Date.AddDays(1).AddSeconds(-1), DateTimeKind.Utc);
 
         var agendas = await _agendaService.ObterPorPeriodoAsync(inicioGradeUtc, fimGradeUtc, filtroCongregacao);
-        var congregacoes = await _congregacaoService.ListarTodasAsync();
+        var congregacoes = await _congregacaoService.ListarPorUsuarioAsync(usuarioId, userCongId, ehSuperAdmin, apenasAtivas: true);
 
         var diasGrade = new List<AgendaDiaCalendarioDto>();
         for (var d = inicioGrade.Date; d <= fimGrade.Date; d = d.AddDays(1))
@@ -112,10 +131,12 @@ public class AgendaController : Controller
 
     public async Task<IActionResult> Create(string? data, Guid? congregacaoId)
     {
+        var usuarioId = ObterUsuarioIdLogado();
         var userCongId = ObterCongregacaoIdUsuarioLogado();
-        var congIdFinal = congregacaoId ?? userCongId;
+        var ehSuperAdmin = EhSuperAdmin();
+        var congIdFinal = ehSuperAdmin ? (congregacaoId ?? userCongId) : userCongId;
 
-        await CarregarCombosAsync(userCongId);
+        await CarregarCombosAsync(usuarioId, userCongId, ehSuperAdmin);
 
         DateTime dataInicial = DateTime.Today.AddDays(7).AddHours(19);
         if (!string.IsNullOrWhiteSpace(data) && DateTime.TryParse(data, out var parsedDate))
@@ -130,8 +151,15 @@ public class AgendaController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Create(CriarAgendaDto dto)
     {
+        var usuarioId = ObterUsuarioIdLogado();
         var userCongId = ObterCongregacaoIdUsuarioLogado();
-        if (dto.CongregacaoId == Guid.Empty && userCongId.HasValue)
+        var ehSuperAdmin = EhSuperAdmin();
+
+        if (!ehSuperAdmin && userCongId.HasValue)
+        {
+            dto = dto with { CongregacaoId = userCongId.Value };
+        }
+        else if (dto.CongregacaoId == Guid.Empty && userCongId.HasValue)
         {
             dto = dto with { CongregacaoId = userCongId.Value };
         }
@@ -160,7 +188,7 @@ public class AgendaController : Controller
             ModelState.AddModelError(string.Empty, ex.Message);
         }
 
-        await CarregarCombosAsync(userCongId);
+        await CarregarCombosAsync(usuarioId, userCongId, ehSuperAdmin);
         return View(dto);
     }
 
@@ -168,6 +196,8 @@ public class AgendaController : Controller
     {
         var agenda = await _agendaService.ObterPorIdAsync(id);
         if (agenda == null) return NotFound();
+
+        if (!PodeAcessarAgenda(agenda)) return Forbid();
 
         var orador = await _oradorService.ObterPorIdAsync(agenda.OradorId);
         ViewBag.Orador = orador;
@@ -181,6 +211,11 @@ public class AgendaController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Edit(AtualizarAgendaDto dto)
     {
+        var agenda = await _agendaService.ObterPorIdAsync(dto.Id);
+        if (agenda == null) return NotFound();
+
+        if (!PodeAcessarAgenda(agenda)) return Forbid();
+
         try
         {
             await _agendaService.AtualizarAsync(dto);
@@ -192,13 +227,9 @@ public class AgendaController : Controller
             ModelState.AddModelError(string.Empty, ex.Message);
         }
 
-        var agenda = await _agendaService.ObterPorIdAsync(dto.Id);
-        if (agenda != null)
-        {
-            var orador = await _oradorService.ObterPorIdAsync(agenda.OradorId);
-            ViewBag.Orador = orador;
-            ViewBag.Discursos = orador?.Repertorio ?? new List<DiscursoDto>();
-        }
+        var orador = await _oradorService.ObterPorIdAsync(agenda.OradorId);
+        ViewBag.Orador = orador;
+        ViewBag.Discursos = orador?.Repertorio ?? new List<DiscursoDto>();
 
         return View(dto);
     }
@@ -208,6 +239,8 @@ public class AgendaController : Controller
         var agenda = await _agendaService.ObterPorIdAsync(id);
         if (agenda == null) return NotFound();
 
+        if (!PodeAcessarAgenda(agenda)) return Forbid();
+
         return View(agenda);
     }
 
@@ -215,6 +248,11 @@ public class AgendaController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Confirmar(Guid id)
     {
+        var agenda = await _agendaService.ObterPorIdAsync(id);
+        if (agenda == null) return NotFound();
+
+        if (!PodeAcessarAgenda(agenda)) return Forbid();
+
         try
         {
             await _agendaService.ConfirmarAsync(id);
@@ -232,6 +270,11 @@ public class AgendaController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> ReenviarConvite(Guid id)
     {
+        var agenda = await _agendaService.ObterPorIdAsync(id);
+        if (agenda == null) return NotFound();
+
+        if (!PodeAcessarAgenda(agenda)) return Forbid();
+
         var res = await _whatsAppService.EnviarConvitePalestraAsync(id);
         if (res.Sucesso)
             TempData["Success"] = "Convite de WhatsApp reenviado com sucesso!";
@@ -245,6 +288,11 @@ public class AgendaController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Cancelar(Guid id, string? motivo)
     {
+        var agenda = await _agendaService.ObterPorIdAsync(id);
+        if (agenda == null) return NotFound();
+
+        if (!PodeAcessarAgenda(agenda)) return Forbid();
+
         try
         {
             await _agendaService.CancelarAsync(new CancelarAgendaDto(id, motivo));
@@ -287,9 +335,9 @@ public class AgendaController : Controller
         });
     }
 
-    private async Task CarregarCombosAsync(Guid? userCongId = null)
+    private async Task CarregarCombosAsync(Guid usuarioId, Guid? userCongId, bool ehSuperAdmin)
     {
-        ViewBag.Congregacoes = await _congregacaoService.ListarTodasAsync();
-        ViewBag.Oradores = (await _oradorService.ListarTodosAsync()).Where(o => o.Ativo).ToList();
+        ViewBag.Congregacoes = await _congregacaoService.ListarPorUsuarioAsync(usuarioId, userCongId, ehSuperAdmin, apenasAtivas: true);
+        ViewBag.Oradores = await _oradorService.ListarPorUsuarioAsync(usuarioId, userCongId, ehSuperAdmin, apenasAtivos: true);
     }
 }

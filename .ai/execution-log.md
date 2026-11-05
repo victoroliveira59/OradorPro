@@ -62,5 +62,21 @@
   5. Ajustes de formulários para toque e empilhamento em colunas.
 - **Status:** COMPLETED (DONE)
 - **Evidências:** `dotnet test AgendaPalestras.sln`: 92 testes executados e 100% aprovados; `dotnet build`: 0 erros.
-- **Relatório Final:** `docs/phases/phase-13-completion.md`.
+### 2026-11-05 08:55 BRT — Conclusão da Fase 16 (Isolamento Multi-tenant por Usuário e Congregação)
+- **Agente:** Maestro / Analista / Engenheiro / Tester / Revisor
+- **Fase:** 16 - Isolamento de Dados por Usuário e Congregação (Multi-Tenancy)
+- **Tasks:** T16.01, T16.02, T16.03
+- **Ações Realizadas:**
+  1. Especificação de isolamento multi-tenant pelo Analista (`analyst-report.md`, `requirements.md` RF-13, `business-rules.md` RN-14 a RN-18, `acceptance-criteria.md` CA-ISO-01 a CA-ISO-06).
+  2. Implementação no Domain: inclusão de `UsuarioCriadorId` em `Orador`, métodos de repositório com tenancy em `ICongregacaoRepository` e `IOradorRepository`.
+  3. Implementação no Infrastructure: mapeamentos EF Core com índices em `UsuarioCriadorId`, migration `20261105113338_AddUsuarioCriadorIdEmOradorEMapeamentosMultiTenant` aplicada, e queries LINQ filtradas em `CongregacaoRepository` e `OradorRepository`.
+  4. Implementação no Application: DTOs e Services atualizados para filtrar e gravar `UsuarioCriadorId`.
+  5. Implementação no Web MVC: `CongregacoesController`, `OradoresController`, `AgendaController` e `ProgramacaoController` protegidas contra IDOR e forçando escopo por congregação/usuário para usuários regulares.
+  6. Catálogo oficial de discursos (194 temas S-34) permanece global e compartilhado.
+  7. SuperAdmin mantém visão e controle global sobre todas as congregações, oradores e agendas.
+  8. Qualidade e Auditoria: 21 novos testes criados em `MultiTenantIsolationTests.cs`. Suíte total com 119 testes executados e 100% aprovados.
+  9. Auditoria de segurança do Revisor aprovada com parecer `APPROVED` (zero falhas e zero segredos).
+- **Status:** COMPLETED (DONE)
+- **Evidências:** `dotnet test AgendaPalestras.sln -c Release`: 119 testes aprovados (111 unitários, 4 de arquitetura, 4 de integração); `dotnet build`: 0 erros.
+- **Relatórios:** `docs/agent-runs/fase-16/`.
 

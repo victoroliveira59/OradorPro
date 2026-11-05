@@ -32,6 +32,30 @@ public class CongregacaoRepository : ICongregacaoRepository
         return await query.OrderBy(c => c.Nome).ToListAsync(cancellationToken);
     }
 
+    public async Task<List<Congregacao>> ListarPorUsuarioAsync(
+        Guid usuarioId,
+        Guid? congregacaoId,
+        bool ehSuperAdmin,
+        bool apenasAtivas = false,
+        CancellationToken cancellationToken = default)
+    {
+        var query = _context.Congregacoes
+            .Include(c => c.Oradores)
+            .AsNoTracking();
+
+        if (!ehSuperAdmin)
+        {
+            query = query.Where(c =>
+                (congregacaoId.HasValue && c.Id == congregacaoId.Value) ||
+                c.UsuarioCriadorId == usuarioId);
+        }
+
+        if (apenasAtivas)
+            query = query.Where(c => c.Ativo);
+
+        return await query.OrderBy(c => c.Nome).ToListAsync(cancellationToken);
+    }
+
     public async Task AdicionarAsync(Congregacao congregacao, CancellationToken cancellationToken = default)
     {
         await _context.Congregacoes.AddAsync(congregacao, cancellationToken);
